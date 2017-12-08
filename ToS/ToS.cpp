@@ -268,7 +268,7 @@ std::pair<vector<Point>, float> ToS::findPathFixedSource(vector<vector<char>> &s
 			finalBoard = thisNode.board;
 			//if (thisNode.evalue == 4)break;
 		}
-		if (vQueue.size() > 3000)// restrict vQueue size as end condition
+		if (vQueue.size() > 5000)// restrict vQueue size as end condition
 			break;
 		for (int i = 0; i < DIRECTIONS; ++i) {
 			int newh = thisNode.p.first + movingVector[i][0], neww = thisNode.p.second + movingVector[i][1];

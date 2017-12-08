@@ -192,3 +192,7 @@ System::Void ToSF::ToSForm::autorunBtn_Click(System::Object^  sender, System::Ev
 	Sleep(50);
 	mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
 }
+
+System::Void ToSF::ToSForm::fixedCombo_CheckedChanged(System::Object^  sender, System::EventArgs^  e) {
+	
+}

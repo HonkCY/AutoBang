@@ -56,4 +56,6 @@ public:
 	void setBoard(vector<vector<char>> newBoard);
 	vector<Point> findPath();
 	std::pair<vector<Point>, float> findPathFixedSource(vector<vector<char>> &simulateBoard, Point source);
+	static bool fixedCombo;
+	static int fixedComboCount;
 };
