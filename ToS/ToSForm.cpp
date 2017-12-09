@@ -156,12 +156,18 @@ System::Void ToSF::ToSForm::autorunBtn_Click(System::Object^  sender, System::Ev
     if (!hwnd) { MessageBoxA(NULL, "Cannot catch bluestacks", "Suck", MB_OK); return; }
     HWND mouseHwnd = GetWindow(hwnd, GW_CHILD);
     mouseHwnd = GetWindow(mouseHwnd, GW_CHILD);
-    // Set size of window.
-    SetWindowPos(hwnd, NULL, 0, 0, windowSize.x, windowSize.y, SWP_NOMOVE);
-    Sleep(300);
-    RECT windowRect, mouseWindowRect;
+
+    RECT windowRect;
     GetWindowRect(hwnd, &windowRect);
+    if (windowRect.right - windowRect.left != windowSize.x || windowRect.bottom - windowRect.top != windowSize.y) {
+        // Set size of window.
+        SetWindowPos(hwnd, NULL, 0, 0, windowSize.x, windowSize.y, SWP_NOMOVE);
+        Sleep(300);
+        GetWindowRect(hwnd, &windowRect);
+    }
+    RECT mouseWindowRect;
     GetWindowRect(mouseHwnd, &mouseWindowRect);
+
     // PrintScreen.
     /*// Show window.
     ShowWindow(hwnd, SW_SHOW);
