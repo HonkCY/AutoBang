@@ -7,7 +7,25 @@
 #include <string>
 #pragma comment(lib, "user32.lib")
 //using std::vector;
+void GetWindowPic(HWND hwnd) {
+    //目標設定
+    HDC hdc = GetDC(NULL);
+    int nBitperpixel = GetDeviceCaps(hdc, BITSPIXEL);
 
+    //邊界限制
+    RECT rect;
+    GetWindowRect(hwnd, &rect);
+    int nWidth = rect.right - rect.left;
+    int nHeight = rect.bottom - rect.top;
+
+    //影像截取
+    CImage image;
+    image.Create(nWidth, nHeight, nBitperpixel);
+    BitBlt(image.GetDC(), 0, 0, nWidth, nHeight, hdc, rect.left, rect.top, SRCCOPY);
+    ReleaseDC(NULL, hdc);
+    image.ReleaseDC();
+    image.Save(TEXT("Screenshot.bmp"), Gdiplus::ImageFormatBMP);
+}
 ToS tos;
 POINT base;
 POINT windowSize;
@@ -118,20 +136,12 @@ System::Void ToSF::ToSForm::updateBoard() {
 	}
 }
 
-
 System::Void ToSF::ToSForm::LoadScreen_Click(System::Object^  sender, System::EventArgs^  e) {
     HWND hwnd = FindWindowA(NULL, "BlueStacks");
     hwnd = GetWindow(hwnd, GW_CHILD);
     hwnd = GetWindow(hwnd, GW_CHILD);
     if (!hwnd) { MessageBoxA(NULL, "Cannot catch bluestacks", "Suck", MB_OK); return; }
-    int x = base.x + 30;
-    int y = base.y + 30;
-    SendMouseMove(hwnd, x, y);
-    SendMouseDown(hwnd, x, y);
-    Sleep(50);
-    SendMouseMove(hwnd, x + 60, y);
-    Sleep(50);
-    SendMouseUp(hwnd, x + 60, y);
+    GetWindowPic(hwnd);
 }
 System::Void ToSF::ToSForm::timer1_Tick(System::Object^  sender, System::EventArgs^  e) {
 	POINT p;
@@ -146,9 +156,6 @@ System::Void ToSF::ToSForm::autorunBtn_Click(System::Object^  sender, System::Ev
     if (!hwnd) { MessageBoxA(NULL, "Cannot catch bluestacks", "Suck", MB_OK); return; }
     HWND mouseHwnd = GetWindow(hwnd, GW_CHILD);
     mouseHwnd = GetWindow(mouseHwnd, GW_CHILD);
-    // Show window.
-    ShowWindow(hwnd, SW_SHOW);
-    SetForegroundWindow(hwnd);
     // Set size of window.
     SetWindowPos(hwnd, NULL, 0, 0, windowSize.x, windowSize.y, SWP_NOMOVE);
     Sleep(300);
@@ -156,20 +163,24 @@ System::Void ToSF::ToSForm::autorunBtn_Click(System::Object^  sender, System::Ev
     GetWindowRect(hwnd, &windowRect);
     GetWindowRect(mouseHwnd, &mouseWindowRect);
     // PrintScreen.
+    /*// Show window.
+    ShowWindow(hwnd, SW_SHOW);
+    SetForegroundWindow(hwnd);
     keybd_event(VK_MENU, MapVirtualKey(VK_MENU, 0), 0, 0);
     keybd_event(VK_SNAPSHOT, MapVirtualKey(VK_SNAPSHOT, 0), 0, 0);
     Sleep(50);
     keybd_event(VK_SNAPSHOT, MapVirtualKey(VK_SNAPSHOT, 0), KEYEVENTF_KEYUP, 0);
     keybd_event(VK_MENU, MapVirtualKey(VK_MENU, 0), KEYEVENTF_KEYUP, 0);
     Sleep(300);
-	Image^ img = Clipboard::GetImage();
-	
+	Image^ img = Clipboard::GetImage();*/
+    GetWindowPic(hwnd);
+    Image^ img = Image::FromFile("Screenshot.bmp");
     Bitmap^ oribm = (Bitmap^)(img);
 	Bitmap^ bm = gcnew Bitmap(StoneWidth*6, StoneWidth*5);
 	Graphics^ g = Graphics::FromImage(bm);
 	System::Drawing::Rectangle srcRect = System::Drawing::Rectangle(base.x, base.y, StoneWidth * 6, StoneWidth * 5);
 	g->DrawImage(oribm, 0, 0, srcRect, GraphicsUnit::Pixel);
-
+    delete img; // Release.
 	vector<float> hues(6);
 	this->dealPic(bm);
 	this->scbox->Image = Image::FromHbitmap(bm->GetHbitmap());
@@ -231,9 +242,8 @@ System::Void ToSF::ToSForm::autorunBtn_Click(System::Object^  sender, System::Ev
 	Application::DoEvents();
     int x = (windowRect.left - mouseWindowRect.left) + base.x + StoneWidth / 2 + path[0].second * StoneWidth;
     int y = (windowRect.top - mouseWindowRect.top) + base.y + StoneWidth / 2 + path[0].first * StoneWidth;
-    SendMouseMove(mouseHwnd, x, y);
+    //SendMouseMove(mouseHwnd, x, y);
 	//SetCursorPos(windowRect.left + base.x + StoneWidth / 2 + path[0].second*StoneWidth, windowRect.top + base.y + StoneWidth / 2 + path[0].first * StoneWidth);
-	Sleep(50);
     SendMouseDown(mouseHwnd, x, y);
 	//mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
 	Sleep(50);
@@ -251,6 +261,7 @@ System::Void ToSF::ToSForm::autorunBtn_Click(System::Object^  sender, System::Ev
 	Sleep(50);
     SendMouseUp(mouseHwnd, x, y);
 	//mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+
 }
 
 System::Void ToSF::ToSForm::fixedCombo_CheckedChanged(System::Object^  sender, System::EventArgs^  e) {
