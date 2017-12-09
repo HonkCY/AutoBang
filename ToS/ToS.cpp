@@ -271,6 +271,14 @@ std::pair<vector<Point>, float> ToS::findPathFixedSource(vector<vector<char>> &s
 			finalBoard = thisNode.board;
 			//if (thisNode.evalue == 4)break;
 		}
+		if (isFixedCombo) {
+			vector<COMBO> combos;
+			ToS tmpToS;
+			tmpToS.setBoard(finalBoard);
+			combos = tmpToS.getCombos();
+			if (this->getITHComboCount(1, combos) == fixedComboCount)
+				break;
+		}
 		if (vQueue.size() > 5000)// restrict vQueue size as end condition
 			break;
 		for (int i = 0; i < DIRECTIONS; ++i) {
