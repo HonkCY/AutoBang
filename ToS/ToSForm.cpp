@@ -12,6 +12,18 @@ ToS tos;
 POINT base;
 POINT windowSize;
 int StoneWidth;
+void SendMouseDown(HWND hwnd, int x, int y) {
+    LPARAM p = x + (y << 16);
+    PostMessage(hwnd, WM_LBUTTONDOWN, 0, p);
+}
+void SendMouseUp(HWND hwnd, int x, int y) {
+    LPARAM p = x + (y << 16);
+    PostMessage(hwnd, WM_LBUTTONUP, 0, p);
+}
+void SendMouseMove(HWND hwnd, int x, int y) {
+    LPARAM p = x + (y << 16);
+    PostMessage(hwnd, WM_MOUSEMOVE, 0, p);
+}
 
 System::Void ToSF::ToSForm::ToSForm_Load(System::Object^  sender, System::EventArgs^  e) {
 	char newBoard[HEIGHT][WIDTH] = {
@@ -108,8 +120,18 @@ System::Void ToSF::ToSForm::updateBoard() {
 
 
 System::Void ToSF::ToSForm::LoadScreen_Click(System::Object^  sender, System::EventArgs^  e) {
-
-	
+    HWND hwnd = FindWindowA(NULL, "BlueStacks");
+    hwnd = GetWindow(hwnd, GW_CHILD);
+    hwnd = GetWindow(hwnd, GW_CHILD);
+    if (!hwnd) { MessageBoxA(NULL, "Cannot catch bluestacks", "Suck", MB_OK); return; }
+    int x = base.x + 30;
+    int y = base.y + 30;
+    SendMouseMove(hwnd, x, y);
+    SendMouseDown(hwnd, x, y);
+    Sleep(50);
+    SendMouseMove(hwnd, x + 60, y);
+    Sleep(50);
+    SendMouseUp(hwnd, x + 60, y);
 }
 System::Void ToSF::ToSForm::timer1_Tick(System::Object^  sender, System::EventArgs^  e) {
 	POINT p;
@@ -122,14 +144,17 @@ System::Void ToSF::ToSForm::timer1_Tick(System::Object^  sender, System::EventAr
 System::Void ToSF::ToSForm::autorunBtn_Click(System::Object^  sender, System::EventArgs^  e) {
     HWND hwnd = FindWindowA(NULL, "BlueStacks");
     if (!hwnd) { MessageBoxA(NULL, "Cannot catch bluestacks", "Suck", MB_OK); return; }
+    HWND mouseHwnd = GetWindow(hwnd, GW_CHILD);
+    mouseHwnd = GetWindow(mouseHwnd, GW_CHILD);
     // Show window.
     ShowWindow(hwnd, SW_SHOW);
     SetForegroundWindow(hwnd);
     // Set size of window.
     SetWindowPos(hwnd, NULL, 0, 0, windowSize.x, windowSize.y, SWP_NOMOVE);
     Sleep(300);
-    RECT windowRect;
+    RECT windowRect, mouseWindowRect;
     GetWindowRect(hwnd, &windowRect);
+    GetWindowRect(mouseHwnd, &mouseWindowRect);
     // PrintScreen.
     keybd_event(VK_MENU, MapVirtualKey(VK_MENU, 0), 0, 0);
     keybd_event(VK_SNAPSHOT, MapVirtualKey(VK_SNAPSHOT, 0), 0, 0);
@@ -204,17 +229,28 @@ System::Void ToSF::ToSForm::autorunBtn_Click(System::Object^  sender, System::Ev
 	this->updateBoard();
 	this->comboLab->Text = "Combo:" + combos.size().ToString() + " " + path.size();
 	Application::DoEvents();
-	SetCursorPos(windowRect.left + base.x + StoneWidth / 2 + path[0].second*StoneWidth, windowRect.top + base.y + StoneWidth / 2 + path[0].first * StoneWidth);
+    int x = (windowRect.left - mouseWindowRect.left) + base.x + StoneWidth / 2 + path[0].second * StoneWidth;
+    int y = (windowRect.top - mouseWindowRect.top) + base.y + StoneWidth / 2 + path[0].first * StoneWidth;
+    SendMouseMove(mouseHwnd, x, y);
+	//SetCursorPos(windowRect.left + base.x + StoneWidth / 2 + path[0].second*StoneWidth, windowRect.top + base.y + StoneWidth / 2 + path[0].first * StoneWidth);
 	Sleep(50);
-	mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
+    SendMouseDown(mouseHwnd, x, y);
+	//mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
 	Sleep(50);
 	for (int i = 1; i < path.size() - 1; ++i) {
-		SetCursorPos(windowRect.left + base.x + StoneWidth / 2 + path[i].second * StoneWidth, windowRect.top + base.y + StoneWidth / 2 + path[i].first * StoneWidth);
+        x = (windowRect.left - mouseWindowRect.left) + base.x + StoneWidth / 2 + path[i].second * StoneWidth;
+        y = (windowRect.top - mouseWindowRect.top) + base.y + StoneWidth / 2 + path[i].first * StoneWidth;
+        SendMouseMove(mouseHwnd, x, y);
+		//SetCursorPos(windowRect.left + base.x + StoneWidth / 2 + path[i].second * StoneWidth, windowRect.top + base.y + StoneWidth / 2 + path[i].first * StoneWidth);
 		Sleep(50+rand()%20);
 	}
-	SetCursorPos(windowRect.left + base.x + StoneWidth / 2 + path[path.size() - 1].second * StoneWidth, windowRect.top + base.y + StoneWidth / 2 + path[path.size() - 1].first * StoneWidth);
+    x = (windowRect.left - mouseWindowRect.left) + base.x + StoneWidth / 2 + path[path.size() - 1].second * StoneWidth;
+    y = (windowRect.top - mouseWindowRect.top) + base.y + StoneWidth / 2 + path[path.size() - 1].first * StoneWidth;
+    SendMouseMove(mouseHwnd, x, y);
+	//SetCursorPos(windowRect.left + base.x + StoneWidth / 2 + path[path.size() - 1].second * StoneWidth, windowRect.top + base.y + StoneWidth / 2 + path[path.size() - 1].first * StoneWidth);
 	Sleep(50);
-	mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+    SendMouseUp(mouseHwnd, x, y);
+	//mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
 }
 
 System::Void ToSF::ToSForm::fixedCombo_CheckedChanged(System::Object^  sender, System::EventArgs^  e) {
