@@ -9,9 +9,6 @@ ToS tos;
 POINT base;
 int StoneWidth;
 
-bool ToS::isFixedCombo;
-int ToS::fixedComboCount;
-
 
 System::Void ToSF::ToSForm::ToSForm_Load(System::Object^  sender, System::EventArgs^  e) {
 	char newBoard[HEIGHT][WIDTH] = {
@@ -189,15 +186,15 @@ System::Void ToSF::ToSForm::autorunBtn_Click(System::Object^  sender, System::Ev
 	this->updateBoard();
 	this->comboLab->Text = "Combo:" + combos.size().ToString() + " " + path.size();
 	Application::DoEvents();
-	SetCursorPos(base.x + path[0].second*60, base.y+ path[0].first * 60);
+	SetCursorPos(base.x + path[0].second*StoneWidth, base.y+ path[0].first * StoneWidth);
 	Sleep(50);
 	mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
 	Sleep(50);
 	for (int i = 1; i < path.size() - 1; ++i) {
-		SetCursorPos(base.x + path[i].second * 60, base.y + path[i].first * 60);
+		SetCursorPos(base.x + path[i].second * StoneWidth, base.y + path[i].first * StoneWidth);
 		Sleep(50+rand()%20);
 	}
-	SetCursorPos(base.x + path[path.size() - 1].second * 60, base.y + path[path.size() - 1].first * 60);
+	SetCursorPos(base.x + path[path.size() - 1].second * StoneWidth, base.y + path[path.size() - 1].first * StoneWidth);
 	Sleep(50);
 	mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
 }
