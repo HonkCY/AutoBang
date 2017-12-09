@@ -7,6 +7,10 @@
 
 ToS tos;
 POINT base;
+int StoneWidth;
+
+bool ToS::isFixedCombo;
+int ToS::fixedComboCount;
 
 
 System::Void ToSF::ToSForm::ToSForm_Load(System::Object^  sender, System::EventArgs^  e) {
@@ -36,8 +40,13 @@ System::Void ToSF::ToSForm::ToSForm_Load(System::Object^  sender, System::EventA
 	this->updateBoard();
 	this->timer1->Interval = 500;
 	this->timer1->Start();
+	// setup here
 	base.x = 1570;
 	base.y = 700;
+	StoneWidth = 60;
+	//
+	ToS::isFixedCombo = false;
+	ToS::fixedComboCount = 1;
 }
 
 System::Void ToSF::ToSForm::outpath_Click(System::Object^  sender, System::EventArgs^  e) {
@@ -117,9 +126,9 @@ System::Void ToSF::ToSForm::autorunBtn_Click(System::Object^  sender, System::Ev
 	Application::DoEvents();
 	Image^ img = Clipboard::GetImage();
 	Bitmap^ oribm = (Bitmap^)(img);
-	Bitmap^ bm = gcnew Bitmap(380, 320);
+	Bitmap^ bm = gcnew Bitmap(StoneWidth*6+20, StoneWidth*5+20);
 	Graphics^ g = Graphics::FromImage(bm);
-	System::Drawing::Rectangle srcRect = System::Drawing::Rectangle(base.x - 35, base.y - 35, 380, 320);
+	System::Drawing::Rectangle srcRect = System::Drawing::Rectangle(base.x - 5 - StoneWidth/2, base.y - 5 - StoneWidth / 2, StoneWidth * 6 + 20, StoneWidth * 5 + 20);
 	g->DrawImage(oribm, 0, 0, srcRect, GraphicsUnit::Pixel);
 
 	vector<float> hues(6);
@@ -194,5 +203,14 @@ System::Void ToSF::ToSForm::autorunBtn_Click(System::Object^  sender, System::Ev
 }
 
 System::Void ToSF::ToSForm::fixedCombo_CheckedChanged(System::Object^  sender, System::EventArgs^  e) {
-	
+	ToS::isFixedCombo = this->fixedCombo->Checked;
+	if (ToS::isFixedCombo) {
+		this->fixedCount->Enabled = true;
+	}
+	else {
+		this->fixedCount->Enabled = false;
+	}
+}
+System::Void ToSF::ToSForm::fixedCount_ValueChanged(System::Object^  sender, System::EventArgs^  e) {
+	ToS::fixedComboCount = safe_cast<int>(this->fixedCount->Value);
 }

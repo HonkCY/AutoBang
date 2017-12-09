@@ -72,8 +72,8 @@ namespace ToSF {
 			this->curposShow = (gcnew System::Windows::Forms::Label());
 			this->autorunBtn = (gcnew System::Windows::Forms::Button());
 			this->groupBox1 = (gcnew System::Windows::Forms::GroupBox());
-			this->fixedCombo = (gcnew System::Windows::Forms::CheckBox());
 			this->fixedCount = (gcnew System::Windows::Forms::NumericUpDown());
+			this->fixedCombo = (gcnew System::Windows::Forms::CheckBox());
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->scbox))->BeginInit();
 			this->groupBox1->SuspendLayout();
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->fixedCount))->BeginInit();
@@ -148,17 +148,6 @@ namespace ToSF {
 			this->groupBox1->TabStop = false;
 			this->groupBox1->Text = L"設定";
 			// 
-			// fixedCombo
-			// 
-			this->fixedCombo->AutoSize = true;
-			this->fixedCombo->Location = System::Drawing::Point(7, 22);
-			this->fixedCombo->Name = L"fixedCombo";
-			this->fixedCombo->Size = System::Drawing::Size(107, 16);
-			this->fixedCombo->TabIndex = 0;
-			this->fixedCombo->Text = L"指定首消Combo";
-			this->fixedCombo->UseVisualStyleBackColor = true;
-			this->fixedCombo->CheckedChanged += gcnew System::EventHandler(this, &ToSForm::fixedCombo_CheckedChanged);
-			// 
 			// fixedCount
 			// 
 			this->fixedCount->Enabled = false;
@@ -169,6 +158,18 @@ namespace ToSF {
 			this->fixedCount->Size = System::Drawing::Size(36, 22);
 			this->fixedCount->TabIndex = 1;
 			this->fixedCount->Value = System::Decimal(gcnew cli::array< System::Int32 >(4) { 1, 0, 0, 0 });
+			this->fixedCount->ValueChanged += gcnew System::EventHandler(this, &ToSForm::fixedCount_ValueChanged);
+			// 
+			// fixedCombo
+			// 
+			this->fixedCombo->AutoSize = true;
+			this->fixedCombo->Location = System::Drawing::Point(7, 22);
+			this->fixedCombo->Name = L"fixedCombo";
+			this->fixedCombo->Size = System::Drawing::Size(107, 16);
+			this->fixedCombo->TabIndex = 0;
+			this->fixedCombo->Text = L"指定首消Combo";
+			this->fixedCombo->UseVisualStyleBackColor = true;
+			this->fixedCombo->CheckedChanged += gcnew System::EventHandler(this, &ToSForm::fixedCombo_CheckedChanged);
 			// 
 			// ToSForm
 			// 
@@ -243,6 +244,7 @@ namespace ToSF {
 	private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e);
 private: System::Void autorunBtn_Click(System::Object^  sender, System::EventArgs^  e);
 private: System::Void fixedCombo_CheckedChanged(System::Object^  sender, System::EventArgs^  e);
+private: System::Void fixedCount_ValueChanged(System::Object^  sender, System::EventArgs^  e);
 };
 	
 }

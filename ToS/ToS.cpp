@@ -5,6 +5,9 @@
 
 int movingVector[DIRECTIONS][2] = { { -1,0 },{ 1,0 },{ 0,-1 },{ 0,1 } };
 
+bool ToS::isFixedCombo;
+int ToS::fixedComboCount;
+
 void ToS::setBoard(char newBoard[HEIGHT][WIDTH]) {
 	for (int h = 0; h < HEIGHT; ++h) {
 		for (int w = 0; w < WIDTH; ++w) {
@@ -309,5 +312,12 @@ std::pair<vector<Point>, float> ToS::findPathFixedSource(vector<vector<char>> &s
 
 char ToS::getStone(int h, int w) {
 	return this->board[h][w];
+}
+
+int ToS::getITHComboCount(int ith, vector<COMBO> combos) {
+	int result = 0;
+	for (int i = 0; i < combos.size(); ++i)
+		if (combos[i].ith == ith)++result;
+	return result;
 }
 
