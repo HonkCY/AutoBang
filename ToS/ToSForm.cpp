@@ -1,14 +1,17 @@
+#pragma once
 #include "ToSForm.h"
 #include "ToS.h"
 #include <ctime>
 #include <Windows.h>
+#include <atlimage.h>
+#include <string>
 #pragma comment(lib, "user32.lib")
 //using std::vector;
 
 ToS tos;
 POINT base;
+POINT windowSize;
 int StoneWidth;
-
 
 System::Void ToSF::ToSForm::ToSForm_Load(System::Object^  sender, System::EventArgs^  e) {
 	char newBoard[HEIGHT][WIDTH] = {
@@ -38,9 +41,11 @@ System::Void ToSF::ToSForm::ToSForm_Load(System::Object^  sender, System::EventA
 	this->timer1->Interval = 500;
 	this->timer1->Start();
 	// setup here
-	base.x = 1570;
-	base.y = 700;
-	StoneWidth = 60;
+	base.x = 7;
+	base.y = 353;
+    windowSize.x = 395;
+    windowSize.y = 771;
+	StoneWidth = (windowSize.x - base.x * 2) / 6;
 	//
 	ToS::isFixedCombo = false;
 	ToS::fixedComboCount = 1;
@@ -115,17 +120,29 @@ System::Void ToSF::ToSForm::timer1_Tick(System::Object^  sender, System::EventAr
 }
 
 System::Void ToSF::ToSForm::autorunBtn_Click(System::Object^  sender, System::EventArgs^  e) {
-	Sleep(50);
-	keybd_event(VK_SNAPSHOT, MapVirtualKey(VK_LCONTROL, 0), 0, 0);
-	Sleep(50);
-	keybd_event(VK_SNAPSHOT, MapVirtualKey(VK_LCONTROL, 0), KEYEVENTF_KEYUP, 0);
-	Sleep(300);
-	Application::DoEvents();
+    HWND hwnd = FindWindowA(NULL, "BlueStacks");
+    if (!hwnd) { MessageBoxA(NULL, "Cannot catch bluestacks", "Suck", MB_OK); return; }
+    // Show window.
+    ShowWindow(hwnd, SW_SHOW);
+    SetForegroundWindow(hwnd);
+    // Set size of window.
+    SetWindowPos(hwnd, NULL, 0, 0, windowSize.x, windowSize.y, SWP_NOMOVE);
+    Sleep(300);
+    RECT windowRect;
+    GetWindowRect(hwnd, &windowRect);
+    // PrintScreen.
+    keybd_event(VK_MENU, MapVirtualKey(VK_MENU, 0), 0, 0);
+    keybd_event(VK_SNAPSHOT, MapVirtualKey(VK_SNAPSHOT, 0), 0, 0);
+    Sleep(50);
+    keybd_event(VK_SNAPSHOT, MapVirtualKey(VK_SNAPSHOT, 0), KEYEVENTF_KEYUP, 0);
+    keybd_event(VK_MENU, MapVirtualKey(VK_MENU, 0), KEYEVENTF_KEYUP, 0);
+    Sleep(300);
 	Image^ img = Clipboard::GetImage();
-	Bitmap^ oribm = (Bitmap^)(img);
-	Bitmap^ bm = gcnew Bitmap(StoneWidth*6+20, StoneWidth*5+20);
+	
+    Bitmap^ oribm = (Bitmap^)(img);
+	Bitmap^ bm = gcnew Bitmap(StoneWidth*6, StoneWidth*5);
 	Graphics^ g = Graphics::FromImage(bm);
-	System::Drawing::Rectangle srcRect = System::Drawing::Rectangle(base.x - 5 - StoneWidth/2, base.y - 5 - StoneWidth / 2, StoneWidth * 6 + 20, StoneWidth * 5 + 20);
+	System::Drawing::Rectangle srcRect = System::Drawing::Rectangle(base.x, base.y, StoneWidth * 6, StoneWidth * 5);
 	g->DrawImage(oribm, 0, 0, srcRect, GraphicsUnit::Pixel);
 
 	vector<float> hues(6);
@@ -133,6 +150,7 @@ System::Void ToSF::ToSForm::autorunBtn_Click(System::Object^  sender, System::Ev
 	this->scbox->Image = Image::FromHbitmap(bm->GetHbitmap());
 	this->scbox->SizeMode = PictureBoxSizeMode::Zoom;
 	Application::DoEvents();
+
 	//define colors
 	hues[LIGHT - 1] = 30;
 	hues[DARK - 1] = 290;
@@ -186,15 +204,15 @@ System::Void ToSF::ToSForm::autorunBtn_Click(System::Object^  sender, System::Ev
 	this->updateBoard();
 	this->comboLab->Text = "Combo:" + combos.size().ToString() + " " + path.size();
 	Application::DoEvents();
-	SetCursorPos(base.x + path[0].second*StoneWidth, base.y+ path[0].first * StoneWidth);
+	SetCursorPos(windowRect.left + base.x + StoneWidth / 2 + path[0].second*StoneWidth, windowRect.top + base.y + StoneWidth / 2 + path[0].first * StoneWidth);
 	Sleep(50);
 	mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
 	Sleep(50);
 	for (int i = 1; i < path.size() - 1; ++i) {
-		SetCursorPos(base.x + path[i].second * StoneWidth, base.y + path[i].first * StoneWidth);
+		SetCursorPos(windowRect.left + base.x + StoneWidth / 2 + path[i].second * StoneWidth, windowRect.top + base.y + StoneWidth / 2 + path[i].first * StoneWidth);
 		Sleep(50+rand()%20);
 	}
-	SetCursorPos(base.x + path[path.size() - 1].second * StoneWidth, base.y + path[path.size() - 1].first * StoneWidth);
+	SetCursorPos(windowRect.left + base.x + StoneWidth / 2 + path[path.size() - 1].second * StoneWidth, windowRect.top + base.y + StoneWidth / 2 + path[path.size() - 1].first * StoneWidth);
 	Sleep(50);
 	mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
 }
@@ -211,3 +229,4 @@ System::Void ToSF::ToSForm::fixedCombo_CheckedChanged(System::Object^  sender, S
 System::Void ToSF::ToSForm::fixedCount_ValueChanged(System::Object^  sender, System::EventArgs^  e) {
 	ToS::fixedComboCount = safe_cast<int>(this->fixedCount->Value);
 }
+
