@@ -5,8 +5,13 @@
 
 int movingVector[DIRECTIONS][2] = { { -1,0 },{ 1,0 },{ 0,-1 },{ 0,1 } };
 
+float wPriority = 2, wAllAttack = 4,wHeuristic = 61, wStep = 3;
+
 bool ToS::isFixedCombo;
 int ToS::fixedComboCount;
+bool ToS::isPriorityStone;
+int ToS::priorityStoneType;
+bool ToS::isAttackAll;
 
 void ToS::setBoard(char newBoard[HEIGHT][WIDTH]) {
 	for (int h = 0; h < HEIGHT; ++h) {
@@ -116,57 +121,56 @@ int ToS::markQuals() {
 	return result;
 }
 
-int ToS::maxiExpected() {
-	int count[6] = { 0 }, result = 0;
+float ToS::heuristic(float value, float maxi) {
+	return (maxi - value) * wHeuristic;
+}
+
+float ToS::maxiExpected() {
+	int count[6] = { 0 };
+	float result = 0.0;
 	for (int h = 0; h < HEIGHT; ++h) {
 		for (int w = 0; w < WIDTH; ++w) {
 			count[this->board[h][w] - 1]++;
 		}
 	}
 	for (int i = 0; i < 6; ++i) {
-		result += count[i] / 3;
-	}
-	return result;
-}
-
-void ToS::printBoard() {
-	for (int h = 0; h < HEIGHT; ++h) {
-		for (int w = 0; w < WIDTH; ++w) {
-			switch (this->board[h][w])
-			{
-			case NONE:
-				std::cout << "n";
-				break;
-			case FIRE:
-				std::cout << "r";
-				break;
-			case WATER:
-				std::cout << "b";
-				break;
-			case WOOD:
-				std::cout << "g";
-				break;
-			case LIGHT:
-				std::cout << "y";
-				break;
-			case DARK:
-				std::cout << "b";
-				break;
-			case HEART:
-				std::cout << "p";
-				break;
-			default:
-				break;
-			}
+		if (ToS::isPriorityStone && ToS::priorityStoneType == i) {
+			if(ToS::isAttackAll)
+				result += wAllAttack * count[i] / 5;
+			else
+				result += wPriority*(count[i] / 3);
 		}
-		std::cout << std::endl;
+		else
+			result += count[i] / 3;
 	}
+	if (isFixedCombo)
+		return fixedComboCount;
+	return result;
 }
 
 float ToS::evalue(vector<vector<char>> newBoard) {
 	ToS tmpToS;
 	tmpToS.setBoard(newBoard);
-	return tmpToS.getCombos().size();
+	vector<COMBO> combos = tmpToS.getCombos();
+	int firstComboCount = 0;
+	float result = 0.0;
+	for (int i = 0; i < combos.size(); ++i) {
+		if (combos[i].ith == 1)
+			++firstComboCount;
+		if (isPriorityStone && priorityStoneType == combos[i].type - 1) {
+			if (ToS::isAttackAll && combos[i].count >= 5)
+				result += wAllAttack;
+			else
+				result += wPriority;
+		}
+		else
+			result += 1;
+	}
+	if (isFixedCombo && fixedComboCount == firstComboCount)
+		return 0x7fffffff;
+	else if (isFixedCombo)
+		return combos.size()>fixedComboCount?0: combos.size();
+	return result;
 }
 
 vector<vector<char>> ToS::getBoard() {
@@ -226,6 +230,8 @@ vector<Point> ToS::findPath() {
 
 }
 
+
+
 std::pair<vector<Point>, float> ToS::findPathFixedSource(vector<vector<char>> &simulateBoard, Point source) {
 	std::pair<vector<Point>, float> result;
 	vector<NODE> vQueue;
@@ -248,10 +254,10 @@ std::pair<vector<Point>, float> ToS::findPathFixedSource(vector<vector<char>> &s
 			if (vQueue[i].poped)
 				continue;
 			float fval;
-			// f = h*wh + g*wg
-			fval = (expGoal - vQueue[i].evalue) * 31 + vQueue[i].depth * 2;
+			// f = h + g*wg
+			fval = heuristic(vQueue[i].evalue,expGoal) + vQueue[i].depth * wStep;
 			//
-			if (fval < valMin) {
+			if (fval <= valMin) {
 				valMin = fval;
 				top = i;
 			}
@@ -269,7 +275,9 @@ std::pair<vector<Point>, float> ToS::findPathFixedSource(vector<vector<char>> &s
 			finalVal = valMin;
 			finalIdx = top;
 			finalBoard = thisNode.board;
-			//if (thisNode.evalue == 4)break;
+			// achived goal
+			if (finalVal >= 0x7fffffff)
+				break;
 		}
 		if (isFixedCombo) {
 			vector<COMBO> combos;

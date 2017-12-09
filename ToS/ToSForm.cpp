@@ -282,3 +282,15 @@ System::Void ToSF::ToSForm::fixedCount_ValueChanged(System::Object^  sender, Sys
 	ToS::fixedComboCount = safe_cast<int>(this->fixedCount->Value);
 }
 
+System::Void ToSF::ToSForm::priorityStone_CheckedChanged(System::Object^  sender, System::EventArgs^  e) {
+	ToS::isPriorityStone = this->priorityStone->Checked;
+	this->selectStoneType->Enabled = ToS::isPriorityStone;
+}
+
+System::Void ToSF::ToSForm::selectStoneType_SelectedIndexChanged(System::Object^  sender, System::EventArgs^  e) {
+	ToS::priorityStoneType = this->selectStoneType->SelectedIndex;
+}
+
+System::Void ToSF::ToSForm::attackAll_CheckedChanged(System::Object^  sender, System::EventArgs^  e) {
+	ToS::isAttackAll = this->attackAll->Checked;
+}

@@ -47,17 +47,27 @@ public:
 	int isCombo(int h, int w);
 	void getConnects(int h, int w);
 	int isQualified(int d, Point p);
-	void printBoard();
 	int markQuals();
-	int maxiExpected();
+
+
+	float heuristic(float value, float maxi);
+	float maxiExpected();
 	float evalue(vector<vector<char>> newBoard);
+	int getITHComboCount(int ith, vector<COMBO> combos);
+
 	void setStone(int h, int w, char c);
 	vector<vector<char>> getBoard();
 	void setBoard(vector<vector<char>> newBoard);
+
 	vector<Point> findPath();
 	std::pair<vector<Point>, float> findPathFixedSource(vector<vector<char>> &simulateBoard, Point source);
-	int getITHComboCount(int ith, vector<COMBO> combos);
+
+
+	
 
 	static bool isFixedCombo;
 	static int fixedComboCount;
+	static bool isPriorityStone;
+	static int priorityStoneType;
+	static bool isAttackAll;
 };

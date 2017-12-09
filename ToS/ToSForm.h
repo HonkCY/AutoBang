@@ -32,6 +32,11 @@ namespace ToSF {
 	private: System::Windows::Forms::GroupBox^  groupBox1;
 	private: System::Windows::Forms::NumericUpDown^  fixedCount;
 	private: System::Windows::Forms::CheckBox^  fixedCombo;
+	private: System::Windows::Forms::ComboBox^  selectStoneType;
+
+
+	private: System::Windows::Forms::CheckBox^  priorityStone;
+	private: System::Windows::Forms::CheckBox^  attackAll;
 
 	public:
 
@@ -72,8 +77,11 @@ namespace ToSF {
 			this->curposShow = (gcnew System::Windows::Forms::Label());
 			this->autorunBtn = (gcnew System::Windows::Forms::Button());
 			this->groupBox1 = (gcnew System::Windows::Forms::GroupBox());
+			this->selectStoneType = (gcnew System::Windows::Forms::ComboBox());
+			this->priorityStone = (gcnew System::Windows::Forms::CheckBox());
 			this->fixedCount = (gcnew System::Windows::Forms::NumericUpDown());
 			this->fixedCombo = (gcnew System::Windows::Forms::CheckBox());
+			this->attackAll = (gcnew System::Windows::Forms::CheckBox());
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->scbox))->BeginInit();
 			this->groupBox1->SuspendLayout();
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->fixedCount))->BeginInit();
@@ -139,6 +147,9 @@ namespace ToSF {
 			// 
 			// groupBox1
 			// 
+			this->groupBox1->Controls->Add(this->attackAll);
+			this->groupBox1->Controls->Add(this->selectStoneType);
+			this->groupBox1->Controls->Add(this->priorityStone);
 			this->groupBox1->Controls->Add(this->fixedCount);
 			this->groupBox1->Controls->Add(this->fixedCombo);
 			this->groupBox1->Location = System::Drawing::Point(12, 307);
@@ -147,6 +158,30 @@ namespace ToSF {
 			this->groupBox1->TabIndex = 6;
 			this->groupBox1->TabStop = false;
 			this->groupBox1->Text = L"設定";
+			// 
+			// selectStoneType
+			// 
+			this->selectStoneType->DropDownStyle = System::Windows::Forms::ComboBoxStyle::DropDownList;
+			this->selectStoneType->Enabled = false;
+			this->selectStoneType->FormattingEnabled = true;
+			this->selectStoneType->ImeMode = System::Windows::Forms::ImeMode::Off;
+			this->selectStoneType->Items->AddRange(gcnew cli::array< System::Object^  >(6) { L"火", L"水", L"木", L"光", L"暗", L"心" });
+			this->selectStoneType->Location = System::Drawing::Point(85, 51);
+			this->selectStoneType->Name = L"selectStoneType";
+			this->selectStoneType->Size = System::Drawing::Size(71, 20);
+			this->selectStoneType->TabIndex = 3;
+			this->selectStoneType->SelectedIndexChanged += gcnew System::EventHandler(this, &ToSForm::selectStoneType_SelectedIndexChanged);
+			// 
+			// priorityStone
+			// 
+			this->priorityStone->AutoSize = true;
+			this->priorityStone->Location = System::Drawing::Point(7, 53);
+			this->priorityStone->Name = L"priorityStone";
+			this->priorityStone->Size = System::Drawing::Size(72, 16);
+			this->priorityStone->TabIndex = 2;
+			this->priorityStone->Text = L"優先屬性";
+			this->priorityStone->UseVisualStyleBackColor = true;
+			this->priorityStone->CheckedChanged += gcnew System::EventHandler(this, &ToSForm::priorityStone_CheckedChanged);
 			// 
 			// fixedCount
 			// 
@@ -170,6 +205,17 @@ namespace ToSF {
 			this->fixedCombo->Text = L"指定首消Combo";
 			this->fixedCombo->UseVisualStyleBackColor = true;
 			this->fixedCombo->CheckedChanged += gcnew System::EventHandler(this, &ToSForm::fixedCombo_CheckedChanged);
+			// 
+			// attackAll
+			// 
+			this->attackAll->AutoSize = true;
+			this->attackAll->Location = System::Drawing::Point(7, 76);
+			this->attackAll->Name = L"attackAll";
+			this->attackAll->Size = System::Drawing::Size(144, 16);
+			this->attackAll->TabIndex = 4;
+			this->attackAll->Text = L"優先屬性全體攻擊優先";
+			this->attackAll->UseVisualStyleBackColor = true;
+			this->attackAll->CheckedChanged += gcnew System::EventHandler(this, &ToSForm::attackAll_CheckedChanged);
 			// 
 			// ToSForm
 			// 
@@ -245,6 +291,9 @@ namespace ToSF {
 private: System::Void autorunBtn_Click(System::Object^  sender, System::EventArgs^  e);
 private: System::Void fixedCombo_CheckedChanged(System::Object^  sender, System::EventArgs^  e);
 private: System::Void fixedCount_ValueChanged(System::Object^  sender, System::EventArgs^  e);
+private: System::Void priorityStone_CheckedChanged(System::Object^  sender, System::EventArgs^  e);
+private: System::Void selectStoneType_SelectedIndexChanged(System::Object^  sender, System::EventArgs^  e);
+private: System::Void attackAll_CheckedChanged(System::Object^  sender, System::EventArgs^  e);
 };
 	
 }
