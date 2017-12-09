@@ -294,3 +294,12 @@ System::Void ToSF::ToSForm::selectStoneType_SelectedIndexChanged(System::Object^
 System::Void ToSF::ToSForm::attackAll_CheckedChanged(System::Object^  sender, System::EventArgs^  e) {
 	ToS::isAttackAll = this->attackAll->Checked;
 }
+
+System::Void ToSF::ToSForm::enlargeCalcTime_CheckedChanged(System::Object^  sender, System::EventArgs^  e) {
+	ToS::isEnlargeCalcTime = this->enlargeCalcTime->Checked;
+	this->enlargeSc->Enabled = ToS::isPriorityStone;
+}
+
+System::Void ToSF::ToSForm::enlargeSc_ValueChanged(System::Object^  sender, System::EventArgs^  e) {
+	ToS::enlargeScale = safe_cast<int>(this->enlargeSc->Value);
+}

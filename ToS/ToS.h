@@ -70,4 +70,6 @@ public:
 	static bool isPriorityStone;
 	static int priorityStoneType;
 	static bool isAttackAll;
+	static bool isEnlargeCalcTime;
+	static int enlargeScale;
 };

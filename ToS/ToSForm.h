@@ -37,6 +37,8 @@ namespace ToSF {
 
 	private: System::Windows::Forms::CheckBox^  priorityStone;
 	private: System::Windows::Forms::CheckBox^  attackAll;
+	private: System::Windows::Forms::CheckBox^  enlargeCalcTime;
+	private: System::Windows::Forms::NumericUpDown^  enlargeSc;
 
 	public:
 
@@ -77,13 +79,16 @@ namespace ToSF {
 			this->curposShow = (gcnew System::Windows::Forms::Label());
 			this->autorunBtn = (gcnew System::Windows::Forms::Button());
 			this->groupBox1 = (gcnew System::Windows::Forms::GroupBox());
+			this->enlargeSc = (gcnew System::Windows::Forms::NumericUpDown());
+			this->enlargeCalcTime = (gcnew System::Windows::Forms::CheckBox());
+			this->attackAll = (gcnew System::Windows::Forms::CheckBox());
 			this->selectStoneType = (gcnew System::Windows::Forms::ComboBox());
 			this->priorityStone = (gcnew System::Windows::Forms::CheckBox());
 			this->fixedCount = (gcnew System::Windows::Forms::NumericUpDown());
 			this->fixedCombo = (gcnew System::Windows::Forms::CheckBox());
-			this->attackAll = (gcnew System::Windows::Forms::CheckBox());
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->scbox))->BeginInit();
 			this->groupBox1->SuspendLayout();
+			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->enlargeSc))->BeginInit();
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->fixedCount))->BeginInit();
 			this->SuspendLayout();
 			// 
@@ -147,6 +152,8 @@ namespace ToSF {
 			// 
 			// groupBox1
 			// 
+			this->groupBox1->Controls->Add(this->enlargeSc);
+			this->groupBox1->Controls->Add(this->enlargeCalcTime);
 			this->groupBox1->Controls->Add(this->attackAll);
 			this->groupBox1->Controls->Add(this->selectStoneType);
 			this->groupBox1->Controls->Add(this->priorityStone);
@@ -158,6 +165,40 @@ namespace ToSF {
 			this->groupBox1->TabIndex = 6;
 			this->groupBox1->TabStop = false;
 			this->groupBox1->Text = L"設定";
+			// 
+			// enlargeSc
+			// 
+			this->enlargeSc->Enabled = false;
+			this->enlargeSc->Location = System::Drawing::Point(296, 21);
+			this->enlargeSc->Maximum = System::Decimal(gcnew cli::array< System::Int32 >(4) { 10, 0, 0, 0 });
+			this->enlargeSc->Minimum = System::Decimal(gcnew cli::array< System::Int32 >(4) { 2, 0, 0, 0 });
+			this->enlargeSc->Name = L"enlargeSc";
+			this->enlargeSc->Size = System::Drawing::Size(36, 22);
+			this->enlargeSc->TabIndex = 6;
+			this->enlargeSc->Value = System::Decimal(gcnew cli::array< System::Int32 >(4) { 2, 0, 0, 0 });
+			this->enlargeSc->ValueChanged += gcnew System::EventHandler(this, &ToSForm::enlargeSc_ValueChanged);
+			// 
+			// enlargeCalcTime
+			// 
+			this->enlargeCalcTime->AutoSize = true;
+			this->enlargeCalcTime->Location = System::Drawing::Point(194, 22);
+			this->enlargeCalcTime->Name = L"enlargeCalcTime";
+			this->enlargeCalcTime->Size = System::Drawing::Size(96, 16);
+			this->enlargeCalcTime->TabIndex = 5;
+			this->enlargeCalcTime->Text = L"加大計算時間";
+			this->enlargeCalcTime->UseVisualStyleBackColor = true;
+			this->enlargeCalcTime->CheckedChanged += gcnew System::EventHandler(this, &ToSForm::enlargeCalcTime_CheckedChanged);
+			// 
+			// attackAll
+			// 
+			this->attackAll->AutoSize = true;
+			this->attackAll->Location = System::Drawing::Point(7, 76);
+			this->attackAll->Name = L"attackAll";
+			this->attackAll->Size = System::Drawing::Size(144, 16);
+			this->attackAll->TabIndex = 4;
+			this->attackAll->Text = L"優先屬性全體攻擊優先";
+			this->attackAll->UseVisualStyleBackColor = true;
+			this->attackAll->CheckedChanged += gcnew System::EventHandler(this, &ToSForm::attackAll_CheckedChanged);
 			// 
 			// selectStoneType
 			// 
@@ -206,17 +247,6 @@ namespace ToSF {
 			this->fixedCombo->UseVisualStyleBackColor = true;
 			this->fixedCombo->CheckedChanged += gcnew System::EventHandler(this, &ToSForm::fixedCombo_CheckedChanged);
 			// 
-			// attackAll
-			// 
-			this->attackAll->AutoSize = true;
-			this->attackAll->Location = System::Drawing::Point(7, 76);
-			this->attackAll->Name = L"attackAll";
-			this->attackAll->Size = System::Drawing::Size(144, 16);
-			this->attackAll->TabIndex = 4;
-			this->attackAll->Text = L"優先屬性全體攻擊優先";
-			this->attackAll->UseVisualStyleBackColor = true;
-			this->attackAll->CheckedChanged += gcnew System::EventHandler(this, &ToSForm::attackAll_CheckedChanged);
-			// 
 			// ToSForm
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 12);
@@ -235,6 +265,7 @@ namespace ToSF {
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->scbox))->EndInit();
 			this->groupBox1->ResumeLayout(false);
 			this->groupBox1->PerformLayout();
+			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->enlargeSc))->EndInit();
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->fixedCount))->EndInit();
 			this->ResumeLayout(false);
 			this->PerformLayout();
@@ -294,6 +325,8 @@ private: System::Void fixedCount_ValueChanged(System::Object^  sender, System::E
 private: System::Void priorityStone_CheckedChanged(System::Object^  sender, System::EventArgs^  e);
 private: System::Void selectStoneType_SelectedIndexChanged(System::Object^  sender, System::EventArgs^  e);
 private: System::Void attackAll_CheckedChanged(System::Object^  sender, System::EventArgs^  e);
+private: System::Void enlargeCalcTime_CheckedChanged(System::Object^  sender, System::EventArgs^  e);
+private: System::Void enlargeSc_ValueChanged(System::Object^  sender, System::EventArgs^  e);
 };
 	
 }

@@ -5,14 +5,15 @@
 
 int movingVector[DIRECTIONS][2] = { { -1,0 },{ 1,0 },{ 0,-1 },{ 0,1 } };
 
-float wPriority = 2, wAllAttack = 4,wHeuristic = 61, wStep = 3;
+float wPriority = 2, wAllAttack = 4,wHeuristic = 71, wStep = 3;
 
 bool ToS::isFixedCombo;
 int ToS::fixedComboCount;
 bool ToS::isPriorityStone;
 int ToS::priorityStoneType;
 bool ToS::isAttackAll;
-
+bool ToS::isEnlargeCalcTime;
+int ToS::enlargeScale;
 void ToS::setBoard(char newBoard[HEIGHT][WIDTH]) {
 	for (int h = 0; h < HEIGHT; ++h) {
 		for (int w = 0; w < WIDTH; ++w) {
@@ -235,6 +236,7 @@ vector<Point> ToS::findPath() {
 std::pair<vector<Point>, float> ToS::findPathFixedSource(vector<vector<char>> &simulateBoard, Point source) {
 	std::pair<vector<Point>, float> result;
 	vector<NODE> vQueue;
+	int queueLimit = isEnlargeCalcTime ? 5000*enlargeScale : 5000;
 	int top = 0, finalIdx = 0, expGoal = this->maxiExpected(); // expGoal should not be that easy
 	float finalVal = 0x7fffffff;
 	vector<vector<char>> finalBoard = simulateBoard;
@@ -287,7 +289,7 @@ std::pair<vector<Point>, float> ToS::findPathFixedSource(vector<vector<char>> &s
 			if (this->getITHComboCount(1, combos) == fixedComboCount)
 				break;
 		}
-		if (vQueue.size() > 5000)// restrict vQueue size as end condition
+		if (vQueue.size() > queueLimit)// restrict vQueue size as end condition
 			break;
 		for (int i = 0; i < DIRECTIONS; ++i) {
 			int newh = thisNode.p.first + movingVector[i][0], neww = thisNode.p.second + movingVector[i][1];
