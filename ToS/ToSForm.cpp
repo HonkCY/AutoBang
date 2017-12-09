@@ -155,7 +155,6 @@ System::Void ToSF::ToSForm::autorunBtn_Click(System::Object^  sender, System::Ev
     HWND hwnd = FindWindowA(NULL, "BlueStacks");
     if (!hwnd) { MessageBoxA(NULL, "Cannot catch bluestacks", "Suck", MB_OK); return; }
     HWND mouseHwnd = GetWindow(hwnd, GW_CHILD);
-    mouseHwnd = GetWindow(mouseHwnd, GW_CHILD);
 
     RECT windowRect;
     GetWindowRect(hwnd, &windowRect);
