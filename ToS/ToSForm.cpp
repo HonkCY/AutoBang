@@ -297,9 +297,24 @@ System::Void ToSF::ToSForm::attackAll_CheckedChanged(System::Object^  sender, Sy
 
 System::Void ToSF::ToSForm::enlargeCalcTime_CheckedChanged(System::Object^  sender, System::EventArgs^  e) {
 	ToS::isEnlargeCalcTime = this->enlargeCalcTime->Checked;
-	this->enlargeSc->Enabled = ToS::isPriorityStone;
+	this->enlargeSc->Enabled = ToS::isEnlargeCalcTime;
 }
 
 System::Void ToSF::ToSForm::enlargeSc_ValueChanged(System::Object^  sender, System::EventArgs^  e) {
 	ToS::enlargeScale = safe_cast<int>(this->enlargeSc->Value);
+}
+
+System::Void ToSF::ToSForm::timerAuto_Click(System::Object^  sender, System::EventArgs^  e) {
+	this->isTimerAuto = !this->isTimerAuto;
+	if (this->isTimerAuto) {
+		this->timer2->Interval = 15000;
+		this->timer2->Start();
+	}
+	else {
+		this->timer2->Stop();
+	}
+}
+
+System::Void ToSF::ToSForm::timer2_Tick(System::Object^  sender, System::EventArgs^  e) {
+	this->autorunBtn_Click(sender, e);
 }

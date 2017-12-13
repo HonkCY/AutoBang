@@ -39,6 +39,8 @@ namespace ToSF {
 	private: System::Windows::Forms::CheckBox^  attackAll;
 	private: System::Windows::Forms::CheckBox^  enlargeCalcTime;
 	private: System::Windows::Forms::NumericUpDown^  enlargeSc;
+	private: System::Windows::Forms::Timer^  timer2;
+	private: System::Windows::Forms::Button^  timerAuto;
 
 	public:
 
@@ -79,6 +81,7 @@ namespace ToSF {
 			this->curposShow = (gcnew System::Windows::Forms::Label());
 			this->autorunBtn = (gcnew System::Windows::Forms::Button());
 			this->groupBox1 = (gcnew System::Windows::Forms::GroupBox());
+			this->timerAuto = (gcnew System::Windows::Forms::Button());
 			this->enlargeSc = (gcnew System::Windows::Forms::NumericUpDown());
 			this->enlargeCalcTime = (gcnew System::Windows::Forms::CheckBox());
 			this->attackAll = (gcnew System::Windows::Forms::CheckBox());
@@ -86,6 +89,7 @@ namespace ToSF {
 			this->priorityStone = (gcnew System::Windows::Forms::CheckBox());
 			this->fixedCount = (gcnew System::Windows::Forms::NumericUpDown());
 			this->fixedCombo = (gcnew System::Windows::Forms::CheckBox());
+			this->timer2 = (gcnew System::Windows::Forms::Timer(this->components));
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->scbox))->BeginInit();
 			this->groupBox1->SuspendLayout();
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->enlargeSc))->BeginInit();
@@ -152,6 +156,7 @@ namespace ToSF {
 			// 
 			// groupBox1
 			// 
+			this->groupBox1->Controls->Add(this->timerAuto);
 			this->groupBox1->Controls->Add(this->enlargeSc);
 			this->groupBox1->Controls->Add(this->enlargeCalcTime);
 			this->groupBox1->Controls->Add(this->attackAll);
@@ -165,6 +170,16 @@ namespace ToSF {
 			this->groupBox1->TabIndex = 6;
 			this->groupBox1->TabStop = false;
 			this->groupBox1->Text = L"³]©w";
+			// 
+			// timerAuto
+			// 
+			this->timerAuto->Location = System::Drawing::Point(194, 51);
+			this->timerAuto->Name = L"timerAuto";
+			this->timerAuto->Size = System::Drawing::Size(75, 23);
+			this->timerAuto->TabIndex = 7;
+			this->timerAuto->Text = L"Timer Auto";
+			this->timerAuto->UseVisualStyleBackColor = true;
+			this->timerAuto->Click += gcnew System::EventHandler(this, &ToSForm::timerAuto_Click);
 			// 
 			// enlargeSc
 			// 
@@ -247,6 +262,10 @@ namespace ToSF {
 			this->fixedCombo->UseVisualStyleBackColor = true;
 			this->fixedCombo->CheckedChanged += gcnew System::EventHandler(this, &ToSForm::fixedCombo_CheckedChanged);
 			// 
+			// timer2
+			// 
+			this->timer2->Tick += gcnew System::EventHandler(this, &ToSForm::timer2_Tick);
+			// 
 			// ToSForm
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 12);
@@ -272,6 +291,7 @@ namespace ToSF {
 
 		}
 #pragma endregion
+	private: bool isTimerAuto;
 	private: System::Void ToSForm_Load(System::Object^  sender, System::EventArgs^  e);
 	private: System::Void Stone_Click(System::Object^  sender, System::EventArgs^  e);
 	private: System::Void updateBoard();
@@ -327,6 +347,8 @@ private: System::Void selectStoneType_SelectedIndexChanged(System::Object^  send
 private: System::Void attackAll_CheckedChanged(System::Object^  sender, System::EventArgs^  e);
 private: System::Void enlargeCalcTime_CheckedChanged(System::Object^  sender, System::EventArgs^  e);
 private: System::Void enlargeSc_ValueChanged(System::Object^  sender, System::EventArgs^  e);
+private: System::Void timerAuto_Click(System::Object^  sender, System::EventArgs^  e);
+private: System::Void timer2_Tick(System::Object^  sender, System::EventArgs^  e);
 };
 	
 }
