@@ -22,7 +22,9 @@ namespace ToSF {
         }
     private: System::Windows::Forms::Label^  comboLab;
     private: System::Windows::Forms::Button^  LoadScreen;
-    private: System::Windows::Forms::Button^  outpath;
+    private: System::Windows::Forms::Button^  calcPathBtn;
+
+
     private: System::Windows::Forms::PictureBox^  scbox;
     private: System::Windows::Forms::Timer^  timer1;
     private: System::Windows::Forms::Label^  curposShow;
@@ -41,7 +43,7 @@ namespace ToSF {
     private: System::Windows::Forms::ComboBox^  scanComboBox;
     private: System::Windows::Forms::CheckBox^  AutoRunChk;
     private: System::Windows::Forms::GroupBox^  screenGroup;
-    private: System::Windows::Forms::TextBox^  pathTxtBox;
+
 
 
 
@@ -56,6 +58,11 @@ namespace ToSF {
     protected:
         array<System::Windows::Forms::PictureBox^>^ board;
     private: System::Windows::Forms::Button^  RunPathBtn;
+    private: System::Windows::Forms::ListBox^  pathList;
+    private: System::Windows::Forms::GroupBox^  pathGroup;
+    private: System::Windows::Forms::Button^  addPathBtn;
+    private: System::Windows::Forms::Button^  removePathBtn;
+    private: System::Windows::Forms::Button^  clearPathBtn;
     protected:
         array<System::Windows::Forms::PictureBox^>^ finalBoard;
         /// <summary>
@@ -84,7 +91,7 @@ namespace ToSF {
             this->components = (gcnew System::ComponentModel::Container());
             this->comboLab = (gcnew System::Windows::Forms::Label());
             this->LoadScreen = (gcnew System::Windows::Forms::Button());
-            this->outpath = (gcnew System::Windows::Forms::Button());
+            this->calcPathBtn = (gcnew System::Windows::Forms::Button());
             this->scbox = (gcnew System::Windows::Forms::PictureBox());
             this->timer1 = (gcnew System::Windows::Forms::Timer(this->components));
             this->curposShow = (gcnew System::Windows::Forms::Label());
@@ -101,13 +108,18 @@ namespace ToSF {
             this->fixedCombo = (gcnew System::Windows::Forms::CheckBox());
             this->AutoRunChk = (gcnew System::Windows::Forms::CheckBox());
             this->screenGroup = (gcnew System::Windows::Forms::GroupBox());
-            this->pathTxtBox = (gcnew System::Windows::Forms::TextBox());
             this->RunPathBtn = (gcnew System::Windows::Forms::Button());
+            this->pathList = (gcnew System::Windows::Forms::ListBox());
+            this->pathGroup = (gcnew System::Windows::Forms::GroupBox());
+            this->removePathBtn = (gcnew System::Windows::Forms::Button());
+            this->addPathBtn = (gcnew System::Windows::Forms::Button());
+            this->clearPathBtn = (gcnew System::Windows::Forms::Button());
             (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->scbox))->BeginInit();
             this->groupBox1->SuspendLayout();
             (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->enlargeSc))->BeginInit();
             (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->fixedCount))->BeginInit();
             this->screenGroup->SuspendLayout();
+            this->pathGroup->SuspendLayout();
             this->SuspendLayout();
             // 
             // comboLab
@@ -120,7 +132,7 @@ namespace ToSF {
             // 
             // LoadScreen
             // 
-            this->LoadScreen->Location = System::Drawing::Point(984, 256);
+            this->LoadScreen->Location = System::Drawing::Point(969, 256);
             this->LoadScreen->Name = L"LoadScreen";
             this->LoadScreen->Size = System::Drawing::Size(94, 23);
             this->LoadScreen->TabIndex = 1;
@@ -128,15 +140,15 @@ namespace ToSF {
             this->LoadScreen->UseVisualStyleBackColor = true;
             this->LoadScreen->Click += gcnew System::EventHandler(this, &ToSForm::LoadScreen_Click);
             // 
-            // outpath
+            // calcPathBtn
             // 
-            this->outpath->Location = System::Drawing::Point(743, 385);
-            this->outpath->Name = L"outpath";
-            this->outpath->Size = System::Drawing::Size(75, 23);
-            this->outpath->TabIndex = 2;
-            this->outpath->Text = L"Output Path";
-            this->outpath->UseVisualStyleBackColor = true;
-            this->outpath->Click += gcnew System::EventHandler(this, &ToSForm::outpath_Click);
+            this->calcPathBtn->Location = System::Drawing::Point(96, 309);
+            this->calcPathBtn->Name = L"calcPathBtn";
+            this->calcPathBtn->Size = System::Drawing::Size(102, 23);
+            this->calcPathBtn->TabIndex = 2;
+            this->calcPathBtn->Text = L"Calculate Path";
+            this->calcPathBtn->UseVisualStyleBackColor = true;
+            this->calcPathBtn->Click += gcnew System::EventHandler(this, &ToSForm::calcPath_Click);
             // 
             // scbox
             // 
@@ -300,46 +312,89 @@ namespace ToSF {
             // screenGroup
             // 
             this->screenGroup->Controls->Add(this->scbox);
-            this->screenGroup->Location = System::Drawing::Point(824, 20);
+            this->screenGroup->Location = System::Drawing::Point(809, 20);
             this->screenGroup->Name = L"screenGroup";
             this->screenGroup->Size = System::Drawing::Size(254, 230);
             this->screenGroup->TabIndex = 11;
             this->screenGroup->TabStop = false;
             this->screenGroup->Text = L"Â^¨úµe­±";
             // 
-            // pathTxtBox
-            // 
-            this->pathTxtBox->Location = System::Drawing::Point(599, 23);
-            this->pathTxtBox->Multiline = true;
-            this->pathTxtBox->Name = L"pathTxtBox";
-            this->pathTxtBox->ReadOnly = true;
-            this->pathTxtBox->ScrollBars = System::Windows::Forms::ScrollBars::Vertical;
-            this->pathTxtBox->Size = System::Drawing::Size(219, 355);
-            this->pathTxtBox->TabIndex = 12;
-            // 
             // RunPathBtn
             // 
-            this->RunPathBtn->Location = System::Drawing::Point(662, 385);
+            this->RunPathBtn->Location = System::Drawing::Point(96, 340);
             this->RunPathBtn->Name = L"RunPathBtn";
-            this->RunPathBtn->Size = System::Drawing::Size(75, 23);
+            this->RunPathBtn->Size = System::Drawing::Size(102, 23);
             this->RunPathBtn->TabIndex = 13;
             this->RunPathBtn->Text = L"Run Path";
             this->RunPathBtn->UseVisualStyleBackColor = true;
             this->RunPathBtn->Click += gcnew System::EventHandler(this, &ToSForm::RunPathBtn_Click);
+            // 
+            // pathList
+            // 
+            this->pathList->FormattingEnabled = true;
+            this->pathList->ItemHeight = 12;
+            this->pathList->Location = System::Drawing::Point(15, 21);
+            this->pathList->Name = L"pathList";
+            this->pathList->Size = System::Drawing::Size(75, 352);
+            this->pathList->TabIndex = 14;
+            this->pathList->SelectedIndexChanged += gcnew System::EventHandler(this, &ToSForm::pathList_SelectedIndexChanged);
+            // 
+            // pathGroup
+            // 
+            this->pathGroup->Controls->Add(this->clearPathBtn);
+            this->pathGroup->Controls->Add(this->removePathBtn);
+            this->pathGroup->Controls->Add(this->addPathBtn);
+            this->pathGroup->Controls->Add(this->pathList);
+            this->pathGroup->Controls->Add(this->calcPathBtn);
+            this->pathGroup->Controls->Add(this->RunPathBtn);
+            this->pathGroup->Location = System::Drawing::Point(599, 20);
+            this->pathGroup->Name = L"pathGroup";
+            this->pathGroup->Size = System::Drawing::Size(204, 388);
+            this->pathGroup->TabIndex = 15;
+            this->pathGroup->TabStop = false;
+            this->pathGroup->Text = L"Path";
+            // 
+            // removePathBtn
+            // 
+            this->removePathBtn->Location = System::Drawing::Point(96, 50);
+            this->removePathBtn->Name = L"removePathBtn";
+            this->removePathBtn->Size = System::Drawing::Size(102, 23);
+            this->removePathBtn->TabIndex = 16;
+            this->removePathBtn->Text = L"Remove";
+            this->removePathBtn->UseVisualStyleBackColor = true;
+            this->removePathBtn->Click += gcnew System::EventHandler(this, &ToSForm::removePathBtn_Click);
+            // 
+            // addPathBtn
+            // 
+            this->addPathBtn->Location = System::Drawing::Point(96, 21);
+            this->addPathBtn->Name = L"addPathBtn";
+            this->addPathBtn->Size = System::Drawing::Size(102, 23);
+            this->addPathBtn->TabIndex = 15;
+            this->addPathBtn->Text = L"Add";
+            this->addPathBtn->UseVisualStyleBackColor = true;
+            this->addPathBtn->Click += gcnew System::EventHandler(this, &ToSForm::addPathBtn_Click);
+            // 
+            // clearPathBtn
+            // 
+            this->clearPathBtn->Location = System::Drawing::Point(96, 79);
+            this->clearPathBtn->Name = L"clearPathBtn";
+            this->clearPathBtn->Size = System::Drawing::Size(102, 23);
+            this->clearPathBtn->TabIndex = 17;
+            this->clearPathBtn->Text = L"Clear";
+            this->clearPathBtn->UseVisualStyleBackColor = true;
+            this->clearPathBtn->Click += gcnew System::EventHandler(this, &ToSForm::clearPathBtn_Click);
             // 
             // ToSForm
             // 
             this->AutoScaleDimensions = System::Drawing::SizeF(6, 12);
             this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
             this->ClientSize = System::Drawing::Size(1105, 414);
-            this->Controls->Add(this->RunPathBtn);
-            this->Controls->Add(this->pathTxtBox);
+            this->Controls->Add(this->pathGroup);
             this->Controls->Add(this->screenGroup);
             this->Controls->Add(this->AutoRunChk);
             this->Controls->Add(this->groupBox1);
             this->Controls->Add(this->autorunBtn);
             this->Controls->Add(this->curposShow);
-            this->Controls->Add(this->outpath);
             this->Controls->Add(this->LoadScreen);
             this->Controls->Add(this->comboLab);
             this->Name = L"ToSForm";
@@ -351,6 +406,7 @@ namespace ToSF {
             (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->enlargeSc))->EndInit();
             (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->fixedCount))->EndInit();
             this->screenGroup->ResumeLayout(false);
+            this->pathGroup->ResumeLayout(false);
             this->ResumeLayout(false);
             this->PerformLayout();
 
@@ -361,7 +417,7 @@ namespace ToSF {
         System::Void ToSForm_Load(System::Object^  sender, System::EventArgs^  e);
         System::Void Stone_Click(System::Object^  sender, System::EventArgs^  e);
         System::Void LoadScreen_Click(System::Object^  sender, System::EventArgs^  e);
-        System::Void outpath_Click(System::Object^  sender, System::EventArgs^  e);
+        System::Void calcPath_Click(System::Object^  sender, System::EventArgs^  e);
         System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e);
         System::Void autorunBtn_Click(System::Object^  sender, System::EventArgs^  e);
         System::Void fixedCombo_CheckedChanged(System::Object^  sender, System::EventArgs^  e);
@@ -372,6 +428,10 @@ namespace ToSF {
         System::Void enlargeCalcTime_CheckedChanged(System::Object^  sender, System::EventArgs^  e);
         System::Void enlargeSc_ValueChanged(System::Object^  sender, System::EventArgs^  e);
         System::Void RunPathBtn_Click(System::Object^  sender, System::EventArgs^  e);
+        System::Void pathList_SelectedIndexChanged(System::Object^  sender, System::EventArgs^  e);
+        System::Void addPathBtn_Click(System::Object^  sender, System::EventArgs^  e);
+        System::Void removePathBtn_Click(System::Object^  sender, System::EventArgs^  e);
+        System::Void clearPathBtn_Click(System::Object^  sender, System::EventArgs^  e);
 #pragma endregion
     private:
         array<System::Drawing::Image^>^ stonePics;

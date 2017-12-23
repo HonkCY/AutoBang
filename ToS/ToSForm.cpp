@@ -34,20 +34,39 @@ void GetWindowPic(HWND hwnd) {
     image.ReleaseDC();
     image.Save(TEXT("Screenshot.bmp"), Gdiplus::ImageFormatBMP);
 }
-void SendMouseDown(HWND hwnd, int x, int y) {
-    LPARAM p = x + (y << 16);
-    PostMessage(hwnd, WM_LBUTTONDOWN, 0, p);
+bool IsCursorInWindow() {
+    POINT cursorPoint;
+    if (GetCursorPos(&cursorPoint)) {
+        if (cursorPoint.x <= windowRect.right && cursorPoint.x >= windowRect.left &&
+            cursorPoint.y <= windowRect.bottom && cursorPoint.y >= windowRect.top) {
+            return true;
+        }
+    }
+    return false;
 }
-void SendMouseUp(HWND hwnd, int x, int y) {
+void SendMouseDown(HWND _hwnd, int x, int y) {
+    if (IsCursorInWindow()) {
+        return;
+    }
     LPARAM p = x + (y << 16);
-    PostMessage(hwnd, WM_LBUTTONUP, 0, p);
+    PostMessage(_hwnd, WM_LBUTTONDOWN, 0, p);
 }
-void SendMouseMove(HWND hwnd, int x, int y) {
+void SendMouseUp(HWND _hwnd, int x, int y) {
+    if (IsCursorInWindow()) {
+        return;
+    }
     LPARAM p = x + (y << 16);
-    PostMessage(hwnd, WM_MOUSEMOVE, 0, p);
+    PostMessage(_hwnd, WM_LBUTTONUP, 0, p);
+}
+void SendMouseMove(HWND _hwnd, int x, int y) {
+    if (IsCursorInWindow()) {
+        return;
+    }
+    LPARAM p = x + (y << 16);
+    PostMessage(_hwnd, WM_MOUSEMOVE, 0, p);
 }
 bool GetBSHwnd() {
-    if (!hwnd) {
+    //if (!hwnd) {
         hwnd = FindWindowA(NULL, "BlueStacks");
         if (!hwnd) { MessageBoxA(NULL, "Cannot catch bluestacks", "Suck", MB_OK); return false; }
         mouseHwnd = GetWindow(hwnd, GW_CHILD);
@@ -60,7 +79,7 @@ bool GetBSHwnd() {
             GetWindowRect(hwnd, &windowRect);
         }
         GetWindowRect(mouseHwnd, &mouseWindowRect);
-    }
+    //}
     return true;
 }
 #pragma endregion
@@ -296,7 +315,7 @@ System::Void ToSF::ToSForm::ToSForm_Load(System::Object^  sender, System::EventA
     ToS::fixedComboCount = 1;
 }
 
-System::Void ToSF::ToSForm::outpath_Click(System::Object^  sender, System::EventArgs^  e) {
+System::Void ToSF::ToSForm::calcPath_Click(System::Object^  sender, System::EventArgs^  e) {
     this->updateBoard();
     vector<std::pair<int, int>> path = tos.findPath();
     vector<COMBO> combos = tos.getCombos();
@@ -306,18 +325,22 @@ System::Void ToSF::ToSForm::outpath_Click(System::Object^  sender, System::Event
     for (int i = 0; i < path.size() - 1; i++) {
         markBoard(path[i].second, path[i].first, path[i + 1].second, path[i + 1].first, i, path.size());
     }
-    String^ s = "";
+    // Record path list.
+    this->pathList->Items->Clear();
     for (int i = 0; i < path.size(); ++i) {
-        s = s + path[i].first.ToString() + "," + path[i].second.ToString() + "\r\n";
+        this->pathList->Items->Add(path[i].first.ToString() + "," + path[i].second.ToString());
     }
-    this->pathTxtBox->Text = s;
 }
 
 System::Void ToSF::ToSForm::Stone_Click(System::Object^  sender, System::EventArgs^  e) {
     PictureBox^ pb = safe_cast<PictureBox^>(sender);
     int idx = Array::IndexOf(this->board, pb);
-    int x = idx / 6, y = idx % 6;
-    tos.setStone(x, y, (tos.getStone(x, y)) % 6 + 1);
+    int y = idx / 6, x = idx % 6;
+    if (this->addPathBtn->BackColor == SystemColors::ActiveCaption) { // Add mode.
+        this->pathList->Items->Add(y.ToString() + "," + x.ToString());
+        return;
+    }
+    tos.setStone(y, x, (tos.getStone(y, x)) % 6 + 1);
     this->updateBoard();
 }
 
@@ -378,7 +401,7 @@ System::Void ToSF::ToSForm::timer1_Tick(System::Object^  sender, System::EventAr
                 this->curposShow->Text = "Waiting...";
             }
         } else {
-            this->curposShow->Text = "Start";
+            this->autorunBtn->Text = "Start";
             this->curposShow->Text = "Cannot run.";
         }
     }
@@ -394,6 +417,7 @@ System::Void ToSF::ToSForm::autorunBtn_Click(System::Object^  sender, System::Ev
         //timer1->Start();
         this->autorunBtn->Text = "Stop";
         timer1_Tick(nullptr, nullptr);
+        timer1->Start();
     }
 }
 
@@ -433,14 +457,42 @@ System::Void ToSF::ToSForm::enlargeSc_ValueChanged(System::Object^  sender, Syst
 }
 
 System::Void ToSF::ToSForm::RunPathBtn_Click(System::Object ^ sender, System::EventArgs ^ e) {
-    auto pathStr = this->pathTxtBox->Text->Split(gcnew array<String^>(1) { "\r\n" }, StringSplitOptions::RemoveEmptyEntries);
+    if (!GetBSHwnd()) { return; }
     vector<std::pair<int, int>> path;
-    for (int i = 0; i < pathStr->Length; i++) {
-        int y = Convert::ToInt32(pathStr[i]->Split(',')[0]);
-        int x = Convert::ToInt32(pathStr[i]->Split(',')[1]);
+    for (int i = 0; i < this->pathList->Items->Count; i++) {
+        int y = Convert::ToInt32(this->pathList->Items[i]->ToString()->Split(',')[0]);
+        int x = Convert::ToInt32(this->pathList->Items[i]->ToString()->Split(',')[1]);
         path.push_back({ y,x });
     }
     RunPath(path);
+}
+System::Void ToSF::ToSForm::pathList_SelectedIndexChanged(System::Object ^ sender, System::EventArgs ^ e) {
+    int i = this->pathList->SelectedIndex;
+    if (i == -1) { return; }
+
+    int y = Convert::ToInt32(this->pathList->Items[i]->ToString()->Split(',')[0]);
+    int x = Convert::ToInt32(this->pathList->Items[i]->ToString()->Split(',')[1]);
+    for (int h = 0; h < 5; h++) {
+        for (int w = 0; w < 6; w++) {
+            this->board[h * 6 + w]->BorderStyle = BorderStyle::None;
+        }
+    }
+    this->board[y * 6 + x]->BorderStyle = BorderStyle::Fixed3D;
+}
+System::Void ToSF::ToSForm::addPathBtn_Click(System::Object ^ sender, System::EventArgs ^ e) {
+    this->addPathBtn->BackColor = this->addPathBtn->BackColor == SystemColors::ActiveCaption ? SystemColors::Control : SystemColors::ActiveCaption;
+}
+System::Void ToSF::ToSForm::removePathBtn_Click(System::Object ^ sender, System::EventArgs ^ e) {
+    int i = this->pathList->SelectedIndex;
+    if (i >= 0) {
+        this->pathList->Items->RemoveAt(i);
+        if (i < this->pathList->Items->Count) {
+            this->pathList->SelectedIndex = i;
+        }
+    }
+}
+System::Void ToSF::ToSForm::clearPathBtn_Click(System::Object ^ sender, System::EventArgs ^ e) {
+    this->pathList->Items->Clear();
 }
 System::Void ToSF::ToSForm::updateBoard() {
     tos.initBoard(); // 僅顯示初始盤面
@@ -479,7 +531,7 @@ System::Void ToSF::ToSForm::markBoard(int x1, int y1, int x2, int y2, int index,
     Bitmap^ bitmap1 = gcnew Bitmap(this->board[y1 * 6 + x1]->Image);
     Graphics^ g1 = Graphics::FromImage(bitmap1);
     if (index == 0) { // Start point
-        int rectSize = imgWidth / 3;
+        int rectSize = imgWidth / 2;
         g1->FillRectangle(Brushes::Black, imgCenterX - rectSize / 2, imgCenterY - rectSize / 2, rectSize, rectSize);
     }
     g1->DrawLine(gcnew Pen(Color::FromArgb(index * (255 / length), index * (255 / length), index * (255 / length)), lineBorder), imgCenterX, imgCenterY, imgCenterX + movingVector[0] * (imgWidth / 2), imgCenterY + movingVector[1] * (imgHeight / 2));
@@ -497,7 +549,6 @@ System::Void ToSF::ToSForm::markBoard(int x1, int y1, int x2, int y2, int index,
 }
 System::Boolean ToSF::ToSForm::checkCanRun() {
     if (!GetBSHwnd()) { return false; }
-    GetWindowRect(mouseHwnd, &mouseWindowRect);
     GetWindowPic(hwnd);
     Image^ img = Image::FromFile("Screenshot.bmp");
     Bitmap^ oribm = (Bitmap^) (img);
@@ -669,7 +720,6 @@ System::Void ToSF::ToSForm::run() {
         IdiotRun();
         return;
     }
-    GetWindowRect(mouseHwnd, &mouseWindowRect);
     GetWindowPic(hwnd);
     Image^ img = Image::FromFile("Screenshot.bmp");
     Bitmap^ oribm = (Bitmap^) (img);
@@ -696,3 +746,5 @@ System::Void ToSF::ToSForm::run() {
     Application::DoEvents();
     RunPath(path);
 }
+
+
