@@ -5,7 +5,7 @@
 
 int movingVector[DIRECTIONS][2] = { { -1,0 },{ 1,0 },{ 0,-1 },{ 0,1 } };
 
-float wPriority = 2, wAllAttack = 4,wHeuristic = 71, wStep = 3;
+float wPriority = 2, wAllAttack = 8,wHeuristic = 71, wStep = 3;
 
 bool ToS::isFixedCombo;
 int ToS::fixedComboCount;
