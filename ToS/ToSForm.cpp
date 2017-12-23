@@ -6,7 +6,15 @@
 #include <atlimage.h>
 #include <string>
 #pragma comment(lib, "user32.lib")
-//using std::vector;
+
+HWND hwnd, mouseHwnd;
+RECT windowRect, mouseWindowRect;
+ToS tos;
+POINT base;
+POINT windowSize;
+int StoneWidth;
+int StoneHeight;
+#pragma region Winapi
 void GetWindowPic(HWND hwnd) {
     //目標設定
     HDC hdc = GetDC(NULL);
@@ -26,11 +34,6 @@ void GetWindowPic(HWND hwnd) {
     image.ReleaseDC();
     image.Save(TEXT("Screenshot.bmp"), Gdiplus::ImageFormatBMP);
 }
-ToS tos;
-POINT base;
-POINT windowSize;
-int StoneWidth;
-int StoneHeight;
 void SendMouseDown(HWND hwnd, int x, int y) {
     LPARAM p = x + (y << 16);
     PostMessage(hwnd, WM_LBUTTONDOWN, 0, p);
@@ -43,103 +46,299 @@ void SendMouseMove(HWND hwnd, int x, int y) {
     LPARAM p = x + (y << 16);
     PostMessage(hwnd, WM_MOUSEMOVE, 0, p);
 }
+bool GetBSHwnd() {
+    if (!hwnd) {
+        hwnd = FindWindowA(NULL, "BlueStacks");
+        if (!hwnd) { MessageBoxA(NULL, "Cannot catch bluestacks", "Suck", MB_OK); return false; }
+        mouseHwnd = GetWindow(hwnd, GW_CHILD);
+
+        GetWindowRect(hwnd, &windowRect);
+        if (windowRect.right - windowRect.left != windowSize.x || windowRect.bottom - windowRect.top != windowSize.y) {
+            // Set size of window.
+            SetWindowPos(hwnd, NULL, 0, 0, windowSize.x, windowSize.y, SWP_NOMOVE);
+            Sleep(300);
+            GetWindowRect(hwnd, &windowRect);
+        }
+        GetWindowRect(mouseHwnd, &mouseWindowRect);
+    }
+    return true;
+}
+#pragma endregion
+
+#pragma region Image deal
+//! 二值化
+void Threshold(System::Drawing::Bitmap ^ bm, unsigned char t) {
+    for (int i = 0; i < bm->Height; i++) {
+        for (int j = 0; j < bm->Width; j++) {
+            System::Drawing::Color tmpColor = bm->GetPixel(j, i);
+            double gray;
+            gray = tmpColor.R * 0.299 + tmpColor.G * 0.587 + tmpColor.B * 0.114;
+            if (gray > t) { gray = 255; } else { gray = 0; }
+            bm->SetPixel(j, i, System::Drawing::Color::FromArgb(gray, gray, gray));
+        }
+    }
+}
+//! Filtering
+void Filtering(System::Drawing::Bitmap ^ bm, double filter[][5]) {
+    double ***dstColor = new double**[bm->Height];
+    for (int i = 0; i < bm->Height; i++) {
+        dstColor[i] = new double*[bm->Width];
+        for (int j = 0; j < bm->Width; j++) {
+            dstColor[i][j] = new double[3]{ 0,0,0 };
+            for (int n = 0; n < 5; n++) {
+                for (int m = 0; m < 5; m++) {
+                    int xOffset = j - 2 + m;
+                    int yOffset = i - 2 + n;
+                    // Reflect image about edge.
+                    while (xOffset < 0 || xOffset >= bm->Width || yOffset < 0 || yOffset >= bm->Height) {
+                        xOffset = xOffset < 0 ? -xOffset : xOffset;
+                        xOffset = xOffset > (bm->Width - 1) ? ((bm->Width - 1) * 2 - xOffset) : xOffset;
+                        yOffset = yOffset < 0 ? -yOffset : yOffset;
+                        yOffset = yOffset > (bm->Height - 1) ? ((bm->Height - 1) * 2 - yOffset) : yOffset;
+                    }
+                    System::Drawing::Color tmpColor = bm->GetPixel(xOffset, yOffset);
+                    dstColor[i][j][0] += tmpColor.R * filter[n][m];
+                    dstColor[i][j][1] += tmpColor.G * filter[n][m];
+                    dstColor[i][j][2] += tmpColor.B * filter[n][m];
+                }
+            }
+            for (int c = 0; c < 3; c++) {
+                if (dstColor[i][j][c] < 0) { dstColor[i][j][c] = 0; } // Out of range.
+                else if (dstColor[i][j][c] > 255) { dstColor[i][j][c] = 255; }
+            }
+
+        }
+    }
+    for (int i = 0; i < bm->Height; i++) {
+        for (int j = 0; j < bm->Width; j++) {
+            bm->SetPixel(j, i, System::Drawing::Color::FromArgb(dstColor[i][j][0], dstColor[i][j][1], dstColor[i][j][2]));
+        }
+    }
+    delete[] dstColor;
+}
+//! 邊緣化+高斯模糊
+void DealPicEdge(System::Drawing::Bitmap ^ bm) {
+    // Edge filter
+    double filter[5][5] = {
+        { -1, -4, -6, -4, -1 },
+        { -4, -16, -24, -16, -4 },
+        { -6, -24, 220, -24, -6 },
+        { -4, -16, -24, -16, -4 },
+        { -1, -4, -6, -4, -1 }
+    };
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 5; j++) {
+            filter[i][j] /= 256.0;
+        }
+    }
+    Filtering(bm, filter);
+    Filtering(bm, filter);
+    Threshold(bm, 8);
+    // Gussian filter
+    double gussian[5][5] = {
+        { 1, 4, 6, 4, 1 },
+        { 4, 16, 24, 16, 4 },
+        { 6, 24, 36, 24, 6 },
+        { 4, 16, 24, 16, 4 },
+        { 1, 4, 6, 4, 1 }
+    };
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 5; j++) {
+            gussian[i][j] /= 256.0;
+        }
+    }
+    Filtering(bm, gussian);
+}
+//! 圖片比對 回傳diff
+double CompareImage(System::Drawing::Bitmap ^ bm1, System::Drawing::Bitmap ^ bm2) {
+    double diff = 0;
+    for (int y = 0; y < bm1->Height; y++) {
+        for (int x = 0; x < bm1->Width; x++) {
+            System::Drawing::Color c1 = bm1->GetPixel(x, y);
+            System::Drawing::Color c2 = bm2->GetPixel(x, y);
+            diff += (c1.R - c2.R) * (c1.R - c2.R); // already gray, thus only get red.
+        }
+    }
+    return diff;
+}
+//! Original deal function by chouber.
+void DealPic(System::Drawing::Bitmap ^ bm) {
+    // Quant_Uniform
+    for (int i = 0; i < bm->Height; i++) {
+        for (int j = 0; j < bm->Width; j++) {
+            System::Drawing::Color thisColor = bm->GetPixel(j, i);
+            bm->SetPixel(j, i, System::Drawing::Color::FromArgb((thisColor.R >> 2) << 2, (thisColor.G >> 2) << 2, (thisColor.B >> 2) << 2));
+        }
+    }
+}
+#pragma endregion
+
+//! 傳入Index 回傳盤面上的座標
+int GetStonePosX(int x) {
+    return x < 3 ? StoneWidth * x : StoneWidth * x + 1;
+}
+int GetStonePosY(int y) {
+    return y < 3 ? StoneWidth * y : StoneHeight * y + 1;
+}
+
+void IdiotRun() {
+    if (!GetBSHwnd()) { return; }
+    POINT path[] = {
+        { 0 , 4 },
+        { 1 , 4 },
+        { 2 , 4 },
+        { 3 , 4 },
+        { 4 , 4 },
+        { 5 , 4 }
+    };
+    int x = (windowRect.left - mouseWindowRect.left) + base.x + StoneWidth / 2 + GetStonePosX(path[0].x);
+    int y = (windowRect.top - mouseWindowRect.top) + base.y + StoneHeight / 2 + GetStonePosY(path[0].y);
+    SendMouseDown(mouseHwnd, x, y);
+    Sleep(50);
+    for (int i = 1; i < 6; ++i) {
+        x = (windowRect.left - mouseWindowRect.left) + base.x + StoneWidth / 2 + GetStonePosX(path[i].x);
+        y = (windowRect.top - mouseWindowRect.top) + base.y + StoneHeight / 2 + GetStonePosY(path[i].y);
+        SendMouseMove(mouseHwnd, x, y);
+        Sleep(50 + rand() % 20);
+    }
+    Sleep(50);
+    SendMouseUp(mouseHwnd, x, y);
+}
+// path = <y, x>
+void RunPath(vector<std::pair<int, int>> path) {
+    int x = (windowRect.left - mouseWindowRect.left) + base.x + StoneWidth / 2 + GetStonePosX(path[0].second);
+    int y = (windowRect.top - mouseWindowRect.top) + base.y + StoneHeight / 2 + GetStonePosY(path[0].first);
+    SendMouseDown(mouseHwnd, x, y);
+    Sleep(50);
+    for (int i = 1; i < path.size(); ++i) {
+        x = (windowRect.left - mouseWindowRect.left) + base.x + StoneWidth / 2 + GetStonePosX(path[i].second);
+        y = (windowRect.top - mouseWindowRect.top) + base.y + StoneHeight / 2 + GetStonePosY(path[i].first);
+        SendMouseMove(mouseHwnd, x, y);
+        Sleep(50);
+    }
+    SendMouseUp(mouseHwnd, x, y);
+}
+
 
 System::Void ToSF::ToSForm::ToSForm_Load(System::Object^  sender, System::EventArgs^  e) {
     srand(time(0));
-	char newBoard[HEIGHT][WIDTH] = {
-		{ DARK, DARK, DARK, HEART, HEART, DARK },
-		{ HEART, HEART, DARK, HEART, HEART, DARK },
-		{ DARK, DARK, DARK, DARK, DARK, DARK },
-		{ DARK, HEART, HEART, DARK, HEART, HEART },
-		{ DARK, HEART, HEART, DARK, DARK, DARK }
-	};
-	tos.setBoard(newBoard);
-	// my board
-	this->board = gcnew array<System::Windows::Forms::PictureBox^>(30);
-	int baseX = 10, baseY = 10;
-	for (int i = 0; i < 5; ++i) {
-		for (int j = 0; j < 6; ++j) {
-			this->board[i * 6 + j] = gcnew System::Windows::Forms::PictureBox();
-			this->board[i * 6 + j]->Name = L"stone" + (i * 8 + j).ToString();
-			this->board[i * 6 + j]->Size = System::Drawing::Size(40, 40);
-			this->board[i * 6 + j]->Location = System::Drawing::Point(baseX + 40 * j, baseY + 40 * i);
-			this->board[i * 6 + j]->SizeMode = PictureBoxSizeMode::Zoom;
-			this->board[i * 6 + j]->Visible = true;
-			this->board[i * 6 + j]->Parent = this;
-			this->board[i * 6 + j]->Click += gcnew System::EventHandler(this, &ToSForm::Stone_Click);
-		}
-	}
-	this->updateBoard();
-	//this->timer1->Interval = 8000;
-	//this->timer1->Start();
-	// setup here
-	base.x = 7;
-	base.y = 355;
+
+    // Init
+    this->selectStoneType->SelectedIndex = 0;
+    this->scanComboBox->SelectedIndex = 0;
+
+    this->stonePics = gcnew array<System::Drawing::Image^>(6);
+    this->stonePics[0] = Image::FromFile("pic/f.png");
+    this->stonePics[1] = Image::FromFile("pic/w.png");
+    this->stonePics[2] = Image::FromFile("pic/p.png");
+    this->stonePics[3] = Image::FromFile("pic/l.png");
+    this->stonePics[4] = Image::FromFile("pic/d.png");
+    this->stonePics[5] = Image::FromFile("pic/h.png");
+
+    this->stoneEdgePics = gcnew array<System::Drawing::Image^>(6);
+    this->stoneEdgePics[0] = Image::FromFile("pic/compare/f.bmp");
+    this->stoneEdgePics[1] = Image::FromFile("pic/compare/w.bmp");
+    this->stoneEdgePics[2] = Image::FromFile("pic/compare/p.bmp");
+    this->stoneEdgePics[3] = Image::FromFile("pic/compare/l.bmp");
+    this->stoneEdgePics[4] = Image::FromFile("pic/compare/d.bmp");
+    this->stoneEdgePics[5] = Image::FromFile("pic/compare/h.bmp");
+
+    char newBoard[HEIGHT][WIDTH] = {
+        { DARK, DARK, DARK, HEART, HEART, DARK },
+        { HEART, HEART, DARK, HEART, HEART, DARK },
+        { DARK, DARK, DARK, DARK, DARK, DARK },
+        { DARK, HEART, HEART, DARK, HEART, HEART },
+        { DARK, HEART, HEART, DARK, DARK, DARK }
+    };
+    tos.setSrcBoard(newBoard);
+    // my board
+    this->board = gcnew array<System::Windows::Forms::PictureBox^>(30);
+    int baseX = 10, baseY = 10;
+    for (int i = 0; i < 5; ++i) {
+        for (int j = 0; j < 6; ++j) {
+            this->board[i * 6 + j] = gcnew System::Windows::Forms::PictureBox();
+            this->board[i * 6 + j]->Name = L"stone" + (i * 8 + j).ToString();
+            this->board[i * 6 + j]->Size = System::Drawing::Size(40, 40);
+            this->board[i * 6 + j]->Location = System::Drawing::Point(baseX + 40 * j, baseY + 40 * i);
+            this->board[i * 6 + j]->SizeMode = PictureBoxSizeMode::Zoom;
+            this->board[i * 6 + j]->Visible = true;
+            this->board[i * 6 + j]->Parent = this;
+            this->board[i * 6 + j]->Click += gcnew System::EventHandler(this, &ToSForm::Stone_Click);
+        }
+    }
+    this->updateBoard();
+    this->finalBoard = gcnew array<System::Windows::Forms::PictureBox^>(30);
+    baseX = 300, baseY = 10;
+    for (int i = 0; i < 5; ++i) {
+        for (int j = 0; j < 6; ++j) {
+            this->finalBoard[i * 6 + j] = gcnew System::Windows::Forms::PictureBox();
+            this->finalBoard[i * 6 + j]->Name = L"stone" + (i * 8 + j).ToString();
+            this->finalBoard[i * 6 + j]->Size = System::Drawing::Size(40, 40);
+            this->finalBoard[i * 6 + j]->Location = System::Drawing::Point(baseX + 40 * j, baseY + 40 * i);
+            this->finalBoard[i * 6 + j]->SizeMode = PictureBoxSizeMode::Zoom;
+            this->finalBoard[i * 6 + j]->Visible = true;
+            this->finalBoard[i * 6 + j]->Parent = this;
+            //this->finalBoard[i * 6 + j]->Click += gcnew System::EventHandler(this, &ToSForm::Stone_Click);
+        }
+    }
+    this->updateFinalBoard();
+    //this->timer1->Interval = 8000;
+    //this->timer1->Start();
+    // setup here
+    base.x = 7;
+    base.y = 355;
     windowSize.x = 395;
     windowSize.y = 771;
     StoneWidth = 63;//(windowSize.x - base.x * 2) / 6;
     StoneHeight = 63;
-	//
-	ToS::isFixedCombo = false;
-	ToS::fixedComboCount = 1;
+    //
+    ToS::isFixedCombo = false;
+    ToS::fixedComboCount = 1;
 }
 
 System::Void ToSF::ToSForm::outpath_Click(System::Object^  sender, System::EventArgs^  e) {
-
-	vector<std::pair<int, int>> path = tos.findPath();
-	vector<COMBO> combos = tos.getCombos();
-	this->updateBoard();
-	this->comboLab->Text = "Combo:" + combos.size().ToString();
-	String^ s = "";
-	for (int i = 0; i < path.size(); ++i) {
-		s = s+"(" + path[i].first.ToString() + "," + path[i].second.ToString()+") ";
-	}
-
+    this->updateBoard();
+    vector<std::pair<int, int>> path = tos.findPath();
+    vector<COMBO> combos = tos.getCombos();
+    //this->updateBoard();
+    this->updateFinalBoard();
+    this->comboLab->Text = "Combo:" + combos.size().ToString() + ", Path:" + path.size();
+    for (int i = 0; i < path.size() - 1; i++) {
+        markBoard(path[i].second, path[i].first, path[i + 1].second, path[i + 1].first, i, path.size());
+    }
+    String^ s = "";
+    for (int i = 0; i < path.size(); ++i) {
+        s = s + path[i].first.ToString() + "," + path[i].second.ToString() + "\r\n";
+    }
+    this->pathTxtBox->Text = s;
 }
 
 System::Void ToSF::ToSForm::Stone_Click(System::Object^  sender, System::EventArgs^  e) {
-	PictureBox^ pb = safe_cast<PictureBox^>(sender);
-	int idx = Array::IndexOf(this->board, pb);
-	int x = idx / 6, y = idx % 6;
-	tos.setStone(x, y, (tos.getStone(x, y)) % 6 + 1);
-	this->updateBoard();
-}
-
-System::Void ToSF::ToSForm::updateBoard() {
-	for (int i = 0; i < 5; ++i) {
-		for (int j = 0; j < 6; ++j) {
-			char sType = tos.getStone(i,j);
-			switch (sType)
-			{
-				case NONE:
-					this->board[i * 6 + j]->Image = Image::FromFile("pic/b.png");
-					break;
-				case FIRE:
-					this->board[i * 6 + j]->Image = Image::FromFile("pic/f.png");
-					break;
-				case WATER:
-					this->board[i * 6 + j]->Image = Image::FromFile("pic/w.png");
-					break;
-				case WOOD:
-					this->board[i * 6 + j]->Image = Image::FromFile("pic/p.png");
-					break;
-				case LIGHT:
-					this->board[i * 6 + j]->Image = Image::FromFile("pic/l.png");
-					break;
-				case DARK:
-					this->board[i * 6 + j]->Image = Image::FromFile("pic/d.png");
-					break;
-				case HEART:
-					this->board[i * 6 + j]->Image = Image::FromFile("pic/h.png");
-					break;
-				default:
-					break;
-			}
-		}
-	}
+    PictureBox^ pb = safe_cast<PictureBox^>(sender);
+    int idx = Array::IndexOf(this->board, pb);
+    int x = idx / 6, y = idx % 6;
+    tos.setStone(x, y, (tos.getStone(x, y)) % 6 + 1);
+    this->updateBoard();
 }
 
 System::Void ToSF::ToSForm::LoadScreen_Click(System::Object^  sender, System::EventArgs^  e) {
+    if (!GetBSHwnd()) { return; }
+    GetWindowPic(hwnd);
+    Image^ img = Image::FromFile("Screenshot.bmp");
+    Bitmap^ oribm = (Bitmap^) (img);
+    Bitmap^ bm = gcnew Bitmap(StoneWidth * 6, StoneHeight * 5);
+    Graphics^ g = Graphics::FromImage(bm);
+    g->PixelOffsetMode = Drawing::Drawing2D::PixelOffsetMode::HighQuality;
+    System::Drawing::Rectangle srcRect = System::Drawing::Rectangle(base.x, base.y, StoneWidth * 6, StoneHeight * 5);
+    g->DrawImage(oribm, 0, 0, srcRect, GraphicsUnit::Pixel);
+    delete img; // Release.
+    this->scbox->Image = bm;
+    this->scbox->SizeMode = PictureBoxSizeMode::Zoom;
+    Application::DoEvents();
+    this->loadBoardFromBitmap(bm);
+}
+/*
+void testing() {
     //checkCanRun();
     Image^ img = Image::FromFile("Screenshot.bmp");
     Bitmap^ oribm = (Bitmap^) (img);
@@ -148,9 +347,9 @@ System::Void ToSF::ToSForm::LoadScreen_Click(System::Object^  sender, System::Ev
     g->PixelOffsetMode = Drawing::Drawing2D::PixelOffsetMode::HighQuality;
     for (int y = 0; y < 5; y++) {
         for (int x = 0; x < 6; x++) {
-            System::Drawing::Rectangle srcRect = System::Drawing::Rectangle(base.x + getStonePosX(x), base.y + getStonePosY(y), StoneWidth * 1, StoneHeight * 1);
+            System::Drawing::Rectangle srcRect = System::Drawing::Rectangle(base.x + GetStonePosX(x), base.y + GetStonePosY(y), StoneWidth * 1, StoneHeight * 1);
             g->DrawImage(oribm, 0, 0, srcRect, GraphicsUnit::Pixel);
-            this->dealPicEdge(bm);
+            DealPicEdge(bm);
             String^ str;
             str = "imgs/" + x.ToString() + "-" + y.ToString() + "stone.bmp";
             bm->Save(str);
@@ -159,53 +358,157 @@ System::Void ToSF::ToSForm::LoadScreen_Click(System::Object^  sender, System::Ev
     delete img; // Release.
     this->scbox->Image = bm;
     this->scbox->SizeMode = PictureBoxSizeMode::Zoom;
-}
+}*/
 System::Void ToSF::ToSForm::timer1_Tick(System::Object^  sender, System::EventArgs^  e) {
-	/*POINT p;
-	if (GetCursorPos(&p))
-	{
-		this->curposShow->Text = p.x.ToString() + "," + p.y.ToString();
-	}*/
     if (checkCanRun()) {
         Sleep(300);
         this->curposShow->Text = "Running...";
         timer1->Stop();
         this->run();
-        this->curposShow->Text = "Waiting...";
-        timer1->Start();
+        // AutoRunChk .
+        if (this->AutoRunChk->Checked) {
+            this->curposShow->Text = "Waiting...";
+            timer1->Start();
+        } else {
+            this->curposShow->Text = "";
+        }
+    } else {
+        if (this->AutoRunChk->Checked) {
+            if (this->curposShow->Text != "Waiting...") {
+                this->curposShow->Text = "Waiting...";
+            }
+        } else {
+            this->curposShow->Text = "Start";
+            this->curposShow->Text = "Cannot run.";
+        }
     }
 }
-int ToSF::ToSForm::getStonePosX(int x) {
-    return x < 3 ? StoneWidth * x : StoneWidth * x + 1;
-}
-int ToSF::ToSForm::getStonePosY(int y) {
-    return y < 3 ? StoneWidth * y : StoneHeight * y + 1;
-}
-bool ToSF::ToSForm::checkCanRun() {
-    HWND hwnd = FindWindowA(NULL, "BlueStacks");
-    if (!hwnd) { MessageBoxA(NULL, "Cannot catch bluestacks", "Suck", MB_OK); return 0; }
-    HWND mouseHwnd = GetWindow(hwnd, GW_CHILD);
 
-    RECT windowRect;
-    GetWindowRect(hwnd, &windowRect);
-    if (windowRect.right - windowRect.left != windowSize.x || windowRect.bottom - windowRect.top != windowSize.y) {
-        // Set size of window.
-        SetWindowPos(hwnd, NULL, 0, 0, windowSize.x, windowSize.y, SWP_NOMOVE);
-        Sleep(300);
-        GetWindowRect(hwnd, &windowRect);
+System::Void ToSF::ToSForm::autorunBtn_Click(System::Object^  sender, System::EventArgs^  e) {
+    timer1->Interval = 2000;
+    if (timer1->Enabled) {
+        timer1->Stop();
+        this->curposShow->Text = "Stop";
+        this->autorunBtn->Text = "Start";
+    } else {
+        //timer1->Start();
+        this->autorunBtn->Text = "Stop";
+        timer1_Tick(nullptr, nullptr);
     }
-    RECT mouseWindowRect;
+}
+
+System::Void ToSF::ToSForm::fixedCombo_CheckedChanged(System::Object^  sender, System::EventArgs^  e) {
+    ToS::isFixedCombo = this->fixedCombo->Checked;
+    if (ToS::isFixedCombo) {
+        this->fixedCount->Enabled = true;
+    } else {
+        this->fixedCount->Enabled = false;
+    }
+}
+
+System::Void ToSF::ToSForm::fixedCount_ValueChanged(System::Object^  sender, System::EventArgs^  e) {
+    ToS::fixedComboCount = safe_cast<int>(this->fixedCount->Value);
+}
+
+System::Void ToSF::ToSForm::priorityStone_CheckedChanged(System::Object^  sender, System::EventArgs^  e) {
+    ToS::isPriorityStone = this->priorityStone->Checked;
+    this->selectStoneType->Enabled = ToS::isPriorityStone;
+}
+
+System::Void ToSF::ToSForm::selectStoneType_SelectedIndexChanged(System::Object^  sender, System::EventArgs^  e) {
+    ToS::priorityStoneType = this->selectStoneType->SelectedIndex;
+}
+
+System::Void ToSF::ToSForm::attackAll_CheckedChanged(System::Object^  sender, System::EventArgs^  e) {
+    ToS::isAttackAll = this->attackAll->Checked;
+}
+
+System::Void ToSF::ToSForm::enlargeCalcTime_CheckedChanged(System::Object^  sender, System::EventArgs^  e) {
+    ToS::isEnlargeCalcTime = this->enlargeCalcTime->Checked;
+    this->enlargeSc->Enabled = ToS::isEnlargeCalcTime;
+}
+
+System::Void ToSF::ToSForm::enlargeSc_ValueChanged(System::Object^  sender, System::EventArgs^  e) {
+    ToS::enlargeScale = safe_cast<int>(this->enlargeSc->Value);
+}
+
+System::Void ToSF::ToSForm::RunPathBtn_Click(System::Object ^ sender, System::EventArgs ^ e) {
+    auto pathStr = this->pathTxtBox->Text->Split(gcnew array<String^>(1) { "\r\n" }, StringSplitOptions::RemoveEmptyEntries);
+    vector<std::pair<int, int>> path;
+    for (int i = 0; i < pathStr->Length; i++) {
+        int y = Convert::ToInt32(pathStr[i]->Split(',')[0]);
+        int x = Convert::ToInt32(pathStr[i]->Split(',')[1]);
+        path.push_back({ y,x });
+    }
+    RunPath(path);
+}
+System::Void ToSF::ToSForm::updateBoard() {
+    tos.initBoard(); // 僅顯示初始盤面
+    for (int i = 0; i < 5; ++i) {
+        for (int j = 0; j < 6; ++j) {
+            char sType = tos.getStone(i, j);
+            if (sType > 0) {
+                this->board[i * 6 + j]->Image = stonePics[sType - 1];
+            } else {
+                this->board[i * 6 + j]->Image = nullptr;
+            }
+        }
+    }
+}
+System::Void ToSF::ToSForm::updateFinalBoard() {
+    for (int i = 0; i < 5; ++i) {
+        for (int j = 0; j < 6; ++j) {
+            char sType = tos.getStone(i, j);
+            if (sType > 0) {
+                this->finalBoard[i * 6 + j]->Image = stonePics[sType - 1];
+            } else {
+                this->finalBoard[i * 6 + j]->Image = nullptr;
+            }
+        }
+    }
+}
+System::Void ToSF::ToSForm::markBoard(int x1, int y1, int x2, int y2, int index, int length) {
+    int movingVector[2] = { x2 - x1, y2 - y1 };
+    int imgWidth = this->board[y1 * 6 + x1]->Image->Width;
+    int imgHeight = this->board[y1 * 6 + x1]->Image->Height;
+    int imgCenterX = imgWidth / 2;
+    int imgCenterY = imgHeight / 2;
+
+    int lineBorder = imgWidth / 10;
+
+    Bitmap^ bitmap1 = gcnew Bitmap(this->board[y1 * 6 + x1]->Image);
+    Graphics^ g1 = Graphics::FromImage(bitmap1);
+    if (index == 0) { // Start point
+        int rectSize = imgWidth / 3;
+        g1->FillRectangle(Brushes::Black, imgCenterX - rectSize / 2, imgCenterY - rectSize / 2, rectSize, rectSize);
+    }
+    g1->DrawLine(gcnew Pen(Color::FromArgb(index * (255 / length), index * (255 / length), index * (255 / length)), lineBorder), imgCenterX, imgCenterY, imgCenterX + movingVector[0] * (imgWidth / 2), imgCenterY + movingVector[1] * (imgHeight / 2));
+
+    Bitmap^ bitmap2 = gcnew Bitmap(this->board[y2 * 6 + x2]->Image);
+    Graphics^ g2 = Graphics::FromImage(bitmap2);
+    g2->DrawLine(gcnew Pen(Color::FromArgb(index * (255 / length), index * (255 / length), index * (255 / length)), lineBorder), imgCenterX - movingVector[0] * (imgWidth / 2), imgCenterY - movingVector[1] * (imgHeight / 2), imgCenterX, imgCenterY);
+    if (index == length - 2) { // End point.
+        int rectSize = imgWidth / 3;
+        g2->FillEllipse(Brushes::White, imgCenterX - rectSize / 2, imgCenterY - rectSize / 2, rectSize, rectSize);
+    }
+    //g->DrawString(index.ToString(), gcnew System::Drawing::Font("Arial", 36), Brushes::Black, 12 + (index % 10) * 6, 12 + (index / 10) * 6);
+    this->board[y1 * 6 + x1]->Image = bitmap1;
+    this->board[y2 * 6 + x2]->Image = bitmap2;
+}
+System::Boolean ToSF::ToSForm::checkCanRun() {
+    if (!GetBSHwnd()) { return false; }
     GetWindowRect(mouseHwnd, &mouseWindowRect);
     GetWindowPic(hwnd);
     Image^ img = Image::FromFile("Screenshot.bmp");
     Bitmap^ oribm = (Bitmap^) (img);
     Bitmap^ bm = gcnew Bitmap(StoneWidth * 6, StoneHeight * 5);
     Graphics^ g = Graphics::FromImage(bm);
+    g->PixelOffsetMode = Drawing::Drawing2D::PixelOffsetMode::HighQuality;
     System::Drawing::Rectangle srcRect = System::Drawing::Rectangle(base.x, base.y, StoneWidth * 6, StoneHeight * 5);
-    g->DrawImage(oribm, 0, -1, srcRect, GraphicsUnit::Pixel);
+    g->DrawImage(oribm, 0, 0, srcRect, GraphicsUnit::Pixel);
     delete img; // Release.
     vector<float> hues(6);
-    this->dealPic(bm);
+    DealPic(bm);
 
     int WIDTH_DIVEDE = bm->Width / 6, HEIGHT_DIVEDE = bm->Height / 5;
 
@@ -248,7 +551,7 @@ bool ToSF::ToSForm::checkCanRun() {
     tmp = Color::FromArgb(tmpR / divideTimes, tmpG / divideTimes, tmpB / divideTimes);
     sampling = tmp.GetBrightness();
     if (sampling < 0.2f || sampling > 4.55f) { return false; }
-    
+
     //抓格子交界處的色調
     tmpR = 0; tmpG = 0; tmpB = 0; divideTimes = 0;
     for (int i = 251; i <= 254; i++) {
@@ -263,79 +566,16 @@ bool ToSF::ToSForm::checkCanRun() {
     tmp = Color::FromArgb(tmpR / divideTimes, tmpG / divideTimes, tmpB / divideTimes);
     sampling = tmp.GetHue();
     if (sampling < 28 || sampling > 30) { return false; } // 29.%^$!&#&
-    
+
     return true;
 }
-System::Void ToSF::ToSForm::run() {
-    HWND hwnd = FindWindowA(NULL, "BlueStacks");
-    if (!hwnd) { MessageBoxA(NULL, "Cannot catch bluestacks", "Suck", MB_OK); return; }
-    HWND mouseHwnd = GetWindow(hwnd, GW_CHILD);
-
-    RECT windowRect;
-    GetWindowRect(hwnd, &windowRect);
-    if (windowRect.right - windowRect.left != windowSize.x || windowRect.bottom - windowRect.top != windowSize.y) {
-        // Set size of window.
-        SetWindowPos(hwnd, NULL, 0, 0, windowSize.x, windowSize.y, SWP_NOMOVE);
-        Sleep(300);
-        GetWindowRect(hwnd, &windowRect);
-    }
-    RECT mouseWindowRect;
-    GetWindowRect(mouseHwnd, &mouseWindowRect);
-    // 傻子模式
-    if (this->idiotCheck->Checked) {
-        POINT path[] = {
-        { 0 , 4 },
-        { 1 , 4 },
-        { 2 , 4 },
-        { 3 , 4 },
-        { 4 , 4 },
-        { 5 , 4 }
-        };
-        int x = (windowRect.left - mouseWindowRect.left) + base.x + StoneWidth / 2 + getStonePosX(path[0].x);
-        int y = (windowRect.top - mouseWindowRect.top) + base.y + StoneHeight / 2 + getStonePosY(path[0].y);
-        SendMouseDown(mouseHwnd, x, y);
-        Sleep(50);
-        for (int i = 1; i < 6; ++i) {
-            x = (windowRect.left - mouseWindowRect.left) + base.x + StoneWidth / 2 + getStonePosX(path[i].x);
-            y = (windowRect.top - mouseWindowRect.top) + base.y + StoneHeight / 2 + getStonePosY(path[i].y);
-            SendMouseMove(mouseHwnd, x, y);
-            Sleep(50 + rand() % 20);
-        }
-        Sleep(50);
-        SendMouseUp(mouseHwnd, x, y);
-        return;
-    }
-    // PrintScreen.
-    /*// Show window.
-    ShowWindow(hwnd, SW_SHOW);
-    SetForegroundWindow(hwnd);
-    keybd_event(VK_MENU, MapVirtualKey(VK_MENU, 0), 0, 0);
-    keybd_event(VK_SNAPSHOT, MapVirtualKey(VK_SNAPSHOT, 0), 0, 0);
-    Sleep(50);
-    keybd_event(VK_SNAPSHOT, MapVirtualKey(VK_SNAPSHOT, 0), KEYEVENTF_KEYUP, 0);
-    keybd_event(VK_MENU, MapVirtualKey(VK_MENU, 0), KEYEVENTF_KEYUP, 0);
-    Sleep(300);
-    Image^ img = Clipboard::GetImage();*/
-
-    GetWindowPic(hwnd);
-    Image^ img = Image::FromFile("Screenshot.bmp");
-    Bitmap^ oribm = (Bitmap^) (img);
-    Bitmap^ bm = gcnew Bitmap(StoneWidth * 6, StoneHeight * 5);
-    Graphics^ g = Graphics::FromImage(bm);
-    System::Drawing::Rectangle srcRect = System::Drawing::Rectangle(base.x, base.y, StoneWidth * 6, StoneHeight * 5);
-    g->DrawImage(oribm, 0, 0, srcRect, GraphicsUnit::Pixel);
-    delete img; // Release.
-    this->scbox->Image = bm;
-    this->scbox->SizeMode = PictureBoxSizeMode::Zoom;
-    Application::DoEvents();
-
+System::Void ToSF::ToSForm::loadBoardFromBitmap(System::Drawing::Bitmap^ bm) {
     vector<vector<char>> newBoard(5);
-
     // 掃描模式
     switch (this->scanComboBox->SelectedIndex) {
     case 0: // 一般模式掃描Hue
     {
-        this->dealPic(bm);
+        DealPic(bm);
 
         //define colors
         vector<float> hues(6);
@@ -354,15 +594,15 @@ System::Void ToSF::ToSForm::run() {
                 unsigned long long tmpR = 0, tmpG = 0, tmpB = 0, divideTimes = 0;
                 for (int k = 0; k < HEIGHT_DIVEDE; k += HEIGHT_DIVEDE / 10) {
                     for (int h = 0; h < WIDTH_DIVEDE; h += WIDTH_DIVEDE / 10) {
-                        Color thisColor = bm->GetPixel(getStonePosX(j) + h, getStonePosY(i) + k);
+                        System::Drawing::Color thisColor = bm->GetPixel(GetStonePosX(j) + h, GetStonePosY(i) + k);
                         tmpR += thisColor.R;
                         tmpG += thisColor.G;
                         tmpB += thisColor.B;
                         divideTimes += 1;
                     }
                 }
-                Color tmp;
-                tmp = Color::FromArgb(tmpR / divideTimes, tmpG / divideTimes, tmpB / divideTimes);
+                System::Drawing::Color tmp;
+                tmp = System::Drawing::Color::FromArgb(tmpR / divideTimes, tmpG / divideTimes, tmpB / divideTimes);
                 samplingHue[i * 6 + j] = tmp.GetHue();
             }
         }
@@ -383,18 +623,16 @@ System::Void ToSF::ToSForm::run() {
             }
         }
     }
-        break;
+    break;
     case 1: // 邊界掃描
     {
-        this->dealPicEdge(bm);
-
-        ArrayList ^ stones = gcnew ArrayList();
-        stones->Add(gcnew Bitmap(Image::FromFile("pic/compare/f.bmp")));
-        stones->Add(gcnew Bitmap(Image::FromFile("pic/compare/w.bmp")));
-        stones->Add(gcnew Bitmap(Image::FromFile("pic/compare/p.bmp")));
-        stones->Add(gcnew Bitmap(Image::FromFile("pic/compare/l.bmp")));
-        stones->Add(gcnew Bitmap(Image::FromFile("pic/compare/d.bmp")));
-        stones->Add(gcnew Bitmap(Image::FromFile("pic/compare/h.bmp")));
+        DealPicEdge(bm);
+        // define image
+        
+        array<Bitmap^>^ stones = gcnew array<Bitmap^>(6);
+        for (int i = 0; i < 6; i++) {
+            stones[i] = gcnew Bitmap(this->stoneEdgePics[i]);
+        }
         double minVal = DBL_MAX, idx = 0;
         for (int i = 0; i < 5; ++i) {
             newBoard[i].resize(6);
@@ -402,10 +640,10 @@ System::Void ToSF::ToSForm::run() {
                 int minVal = 0x7fffffff, idx = 0;
                 Bitmap^ bmCmp = gcnew Bitmap(StoneWidth, StoneHeight);
                 Graphics^ gCmp = Graphics::FromImage(bmCmp);
-                System::Drawing::Rectangle cmpRect = System::Drawing::Rectangle(getStonePosX(j), getStonePosY(i), StoneWidth, StoneHeight);
+                System::Drawing::Rectangle cmpRect = System::Drawing::Rectangle(GetStonePosX(j), GetStonePosY(i), StoneWidth, StoneHeight);
                 gCmp->DrawImage(bm, 0, 0, cmpRect, GraphicsUnit::Pixel);
                 for (int k = 0; k < 6; ++k) {
-                    double tmp = this->compareImage(bmCmp, dynamic_cast<Bitmap ^>(stones[k]));
+                    double tmp = CompareImage(bmCmp, stones[k]);
                     if (tmp < minVal) {
                         minVal = tmp;
                         idx = k;
@@ -417,71 +655,44 @@ System::Void ToSF::ToSForm::run() {
         }
         delete[] stones;
     }
-        break;
+    break;
     }
     // 設定盤面
-    tos.setBoard(newBoard);
+    tos.setSrcBoard(newBoard);
     this->updateBoard();
     Application::DoEvents();
+}
+System::Void ToSF::ToSForm::run() {
+    if (!GetBSHwnd()) { return; }
+    // 傻子模式
+    if (this->idiotCheck->Checked) {
+        IdiotRun();
+        return;
+    }
+    GetWindowRect(mouseHwnd, &mouseWindowRect);
+    GetWindowPic(hwnd);
+    Image^ img = Image::FromFile("Screenshot.bmp");
+    Bitmap^ oribm = (Bitmap^) (img);
+    Bitmap^ bm = gcnew Bitmap(StoneWidth * 6, StoneHeight * 5);
+    Graphics^ g = Graphics::FromImage(bm);
+    g->PixelOffsetMode = Drawing::Drawing2D::PixelOffsetMode::HighQuality;
+    System::Drawing::Rectangle srcRect = System::Drawing::Rectangle(base.x, base.y, StoneWidth * 6, StoneHeight * 5);
+    g->DrawImage(oribm, 0, 0, srcRect, GraphicsUnit::Pixel);
+    delete img; // Release.
+    this->scbox->Image = bm;
+    this->scbox->SizeMode = PictureBoxSizeMode::Zoom;
+    Application::DoEvents();
+    this->loadBoardFromBitmap(bm);
+
     vector<std::pair<int, int>> path = tos.findPath();
     vector<COMBO> combos = tos.getCombos();
-    this->updateBoard();
-    this->comboLab->Text = "Combo:" + combos.size().ToString() + " " + path.size();
+    //this->updateBoard();
+    this->updateFinalBoard();
+
+    this->comboLab->Text = "Combo:" + combos.size().ToString() + ", Path:" + path.size();
+    for (int i = 0; i < path.size() - 1; i++) {
+        markBoard(path[i].second, path[i].first, path[i+1].second, path[i+1].first, i, path.size());
+    }
     Application::DoEvents();
-    int x = (windowRect.left - mouseWindowRect.left) + base.x + StoneWidth / 2 + getStonePosX(path[0].second);
-    int y = (windowRect.top - mouseWindowRect.top) + base.y + StoneHeight / 2 + getStonePosY(path[0].first);
-    SendMouseDown(mouseHwnd, x, y);
-    Sleep(50);
-    for (int i = 1; i < path.size(); ++i) {
-        x = (windowRect.left - mouseWindowRect.left) + base.x + StoneWidth / 2 + getStonePosX(path[i].second);
-        y = (windowRect.top - mouseWindowRect.top) + base.y + StoneHeight / 2 + getStonePosY(path[i].first);
-        SendMouseMove(mouseHwnd, x, y);
-        Sleep(50);
-    }
-    SendMouseUp(mouseHwnd, x, y);
-}
-System::Void ToSF::ToSForm::autorunBtn_Click(System::Object^  sender, System::EventArgs^  e) {
-    timer1->Interval = 2000;
-    if (timer1->Enabled) {
-        this->curposShow->Text = "Stop";
-        timer1->Stop();
-    } else {
-        //timer1->Start();
-        timer1_Tick(nullptr, nullptr);
-    }
-}
-
-System::Void ToSF::ToSForm::fixedCombo_CheckedChanged(System::Object^  sender, System::EventArgs^  e) {
-	ToS::isFixedCombo = this->fixedCombo->Checked;
-	if (ToS::isFixedCombo) {
-		this->fixedCount->Enabled = true;
-	}
-	else {
-		this->fixedCount->Enabled = false;
-	}
-}
-System::Void ToSF::ToSForm::fixedCount_ValueChanged(System::Object^  sender, System::EventArgs^  e) {
-	ToS::fixedComboCount = safe_cast<int>(this->fixedCount->Value);
-}
-
-System::Void ToSF::ToSForm::priorityStone_CheckedChanged(System::Object^  sender, System::EventArgs^  e) {
-	ToS::isPriorityStone = this->priorityStone->Checked;
-	this->selectStoneType->Enabled = ToS::isPriorityStone;
-}
-
-System::Void ToSF::ToSForm::selectStoneType_SelectedIndexChanged(System::Object^  sender, System::EventArgs^  e) {
-	ToS::priorityStoneType = this->selectStoneType->SelectedIndex;
-}
-
-System::Void ToSF::ToSForm::attackAll_CheckedChanged(System::Object^  sender, System::EventArgs^  e) {
-	ToS::isAttackAll = this->attackAll->Checked;
-}
-
-System::Void ToSF::ToSForm::enlargeCalcTime_CheckedChanged(System::Object^  sender, System::EventArgs^  e) {
-	ToS::isEnlargeCalcTime = this->enlargeCalcTime->Checked;
-	this->enlargeSc->Enabled = ToS::isEnlargeCalcTime;
-}
-
-System::Void ToSF::ToSForm::enlargeSc_ValueChanged(System::Object^  sender, System::EventArgs^  e) {
-	ToS::enlargeScale = safe_cast<int>(this->enlargeSc->Value);
+    RunPath(path);
 }

@@ -34,6 +34,7 @@ struct sCOLOR {
 
 class ToS {
 private:
+    char srcBoard[HEIGHT][WIDTH];
 	char board[HEIGHT][WIDTH];
 	bool visited[HEIGHT][WIDTH];
 	vector<Point> connects;
@@ -58,6 +59,10 @@ public:
 	void setStone(int h, int w, char c);
 	vector<vector<char>> getBoard();
 	void setBoard(vector<vector<char>> newBoard);
+    // 設定初始盤面
+    void setSrcBoard(char newBoard[HEIGHT][WIDTH]);
+    void setSrcBoard(vector<vector<char>> newBoard);
+    void initBoard();
 
 	vector<Point> findPath();
 	std::pair<vector<Point>, float> findPathFixedSource(vector<vector<char>> &simulateBoard, Point source);

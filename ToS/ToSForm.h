@@ -39,12 +39,25 @@ namespace ToSF {
     private: System::Windows::Forms::NumericUpDown^  enlargeSc;
     private: System::Windows::Forms::CheckBox^  idiotCheck;
     private: System::Windows::Forms::ComboBox^  scanComboBox;
+    private: System::Windows::Forms::CheckBox^  AutoRunChk;
+    private: System::Windows::Forms::GroupBox^  screenGroup;
+    private: System::Windows::Forms::TextBox^  pathTxtBox;
+
+
+
+
+
+
+
 
 
     public:
 
     protected:
         array<System::Windows::Forms::PictureBox^>^ board;
+    private: System::Windows::Forms::Button^  RunPathBtn;
+    protected:
+        array<System::Windows::Forms::PictureBox^>^ finalBoard;
         /// <summary>
         /// 清除任何使用中的資源。
         /// </summary>
@@ -77,6 +90,7 @@ namespace ToSF {
             this->curposShow = (gcnew System::Windows::Forms::Label());
             this->autorunBtn = (gcnew System::Windows::Forms::Button());
             this->groupBox1 = (gcnew System::Windows::Forms::GroupBox());
+            this->scanComboBox = (gcnew System::Windows::Forms::ComboBox());
             this->idiotCheck = (gcnew System::Windows::Forms::CheckBox());
             this->enlargeSc = (gcnew System::Windows::Forms::NumericUpDown());
             this->enlargeCalcTime = (gcnew System::Windows::Forms::CheckBox());
@@ -85,11 +99,15 @@ namespace ToSF {
             this->priorityStone = (gcnew System::Windows::Forms::CheckBox());
             this->fixedCount = (gcnew System::Windows::Forms::NumericUpDown());
             this->fixedCombo = (gcnew System::Windows::Forms::CheckBox());
-            this->scanComboBox = (gcnew System::Windows::Forms::ComboBox());
+            this->AutoRunChk = (gcnew System::Windows::Forms::CheckBox());
+            this->screenGroup = (gcnew System::Windows::Forms::GroupBox());
+            this->pathTxtBox = (gcnew System::Windows::Forms::TextBox());
+            this->RunPathBtn = (gcnew System::Windows::Forms::Button());
             (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->scbox))->BeginInit();
             this->groupBox1->SuspendLayout();
             (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->enlargeSc))->BeginInit();
             (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->fixedCount))->BeginInit();
+            this->screenGroup->SuspendLayout();
             this->SuspendLayout();
             // 
             // comboLab
@@ -102,9 +120,9 @@ namespace ToSF {
             // 
             // LoadScreen
             // 
-            this->LoadScreen->Location = System::Drawing::Point(153, 278);
+            this->LoadScreen->Location = System::Drawing::Point(984, 256);
             this->LoadScreen->Name = L"LoadScreen";
-            this->LoadScreen->Size = System::Drawing::Size(115, 23);
+            this->LoadScreen->Size = System::Drawing::Size(94, 23);
             this->LoadScreen->TabIndex = 1;
             this->LoadScreen->Text = L"Load Screenshot";
             this->LoadScreen->UseVisualStyleBackColor = true;
@@ -112,7 +130,7 @@ namespace ToSF {
             // 
             // outpath
             // 
-            this->outpath->Location = System::Drawing::Point(729, 368);
+            this->outpath->Location = System::Drawing::Point(743, 385);
             this->outpath->Name = L"outpath";
             this->outpath->Size = System::Drawing::Size(75, 23);
             this->outpath->TabIndex = 2;
@@ -122,9 +140,9 @@ namespace ToSF {
             // 
             // scbox
             // 
-            this->scbox->Location = System::Drawing::Point(293, 1);
+            this->scbox->Location = System::Drawing::Point(6, 21);
             this->scbox->Name = L"scbox";
-            this->scbox->Size = System::Drawing::Size(300, 300);
+            this->scbox->Size = System::Drawing::Size(240, 200);
             this->scbox->TabIndex = 3;
             this->scbox->TabStop = false;
             // 
@@ -146,7 +164,7 @@ namespace ToSF {
             this->autorunBtn->Name = L"autorunBtn";
             this->autorunBtn->Size = System::Drawing::Size(75, 23);
             this->autorunBtn->TabIndex = 5;
-            this->autorunBtn->Text = L"auto run";
+            this->autorunBtn->Text = L"Start";
             this->autorunBtn->UseVisualStyleBackColor = true;
             this->autorunBtn->Click += gcnew System::EventHandler(this, &ToSForm::autorunBtn_Click);
             // 
@@ -167,6 +185,16 @@ namespace ToSF {
             this->groupBox1->TabIndex = 6;
             this->groupBox1->TabStop = false;
             this->groupBox1->Text = L"設定";
+            // 
+            // scanComboBox
+            // 
+            this->scanComboBox->DropDownStyle = System::Windows::Forms::ComboBoxStyle::DropDownList;
+            this->scanComboBox->FormattingEnabled = true;
+            this->scanComboBox->Items->AddRange(gcnew cli::array< System::Object^  >(2) { L"掃描Hue判定(快速)", L"掃描邊界判定" });
+            this->scanComboBox->Location = System::Drawing::Point(194, 73);
+            this->scanComboBox->Name = L"scanComboBox";
+            this->scanComboBox->Size = System::Drawing::Size(138, 20);
+            this->scanComboBox->TabIndex = 9;
             // 
             // idiotCheck
             // 
@@ -259,26 +287,58 @@ namespace ToSF {
             this->fixedCombo->UseVisualStyleBackColor = true;
             this->fixedCombo->CheckedChanged += gcnew System::EventHandler(this, &ToSForm::fixedCombo_CheckedChanged);
             // 
-            // scanComboBox
+            // AutoRunChk
             // 
-            this->scanComboBox->FormattingEnabled = true;
-            this->scanComboBox->Items->AddRange(gcnew cli::array< System::Object^  >(2) { L"掃描Hue判定(快速)", L"掃描邊界判定" });
-            this->scanComboBox->Location = System::Drawing::Point(194, 73);
-            this->scanComboBox->Name = L"scanComboBox";
-            this->scanComboBox->Size = System::Drawing::Size(121, 20);
-            this->scanComboBox->TabIndex = 9;
-            this->scanComboBox->SelectedIndex = 0;
-            this->scanComboBox->DropDownStyle = ComboBoxStyle::DropDownList;
+            this->AutoRunChk->AutoSize = true;
+            this->AutoRunChk->Location = System::Drawing::Point(15, 256);
+            this->AutoRunChk->Name = L"AutoRunChk";
+            this->AutoRunChk->Size = System::Drawing::Size(67, 16);
+            this->AutoRunChk->TabIndex = 10;
+            this->AutoRunChk->Text = L"AutoRun";
+            this->AutoRunChk->UseVisualStyleBackColor = true;
+            // 
+            // screenGroup
+            // 
+            this->screenGroup->Controls->Add(this->scbox);
+            this->screenGroup->Location = System::Drawing::Point(824, 20);
+            this->screenGroup->Name = L"screenGroup";
+            this->screenGroup->Size = System::Drawing::Size(254, 230);
+            this->screenGroup->TabIndex = 11;
+            this->screenGroup->TabStop = false;
+            this->screenGroup->Text = L"擷取畫面";
+            // 
+            // pathTxtBox
+            // 
+            this->pathTxtBox->Location = System::Drawing::Point(599, 23);
+            this->pathTxtBox->Multiline = true;
+            this->pathTxtBox->Name = L"pathTxtBox";
+            this->pathTxtBox->ReadOnly = true;
+            this->pathTxtBox->ScrollBars = System::Windows::Forms::ScrollBars::Vertical;
+            this->pathTxtBox->Size = System::Drawing::Size(219, 355);
+            this->pathTxtBox->TabIndex = 12;
+            // 
+            // RunPathBtn
+            // 
+            this->RunPathBtn->Location = System::Drawing::Point(662, 385);
+            this->RunPathBtn->Name = L"RunPathBtn";
+            this->RunPathBtn->Size = System::Drawing::Size(75, 23);
+            this->RunPathBtn->TabIndex = 13;
+            this->RunPathBtn->Text = L"Run Path";
+            this->RunPathBtn->UseVisualStyleBackColor = true;
+            this->RunPathBtn->Click += gcnew System::EventHandler(this, &ToSForm::RunPathBtn_Click);
             // 
             // ToSForm
             // 
             this->AutoScaleDimensions = System::Drawing::SizeF(6, 12);
             this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
-            this->ClientSize = System::Drawing::Size(605, 420);
+            this->ClientSize = System::Drawing::Size(1105, 414);
+            this->Controls->Add(this->RunPathBtn);
+            this->Controls->Add(this->pathTxtBox);
+            this->Controls->Add(this->screenGroup);
+            this->Controls->Add(this->AutoRunChk);
             this->Controls->Add(this->groupBox1);
             this->Controls->Add(this->autorunBtn);
             this->Controls->Add(this->curposShow);
-            this->Controls->Add(this->scbox);
             this->Controls->Add(this->outpath);
             this->Controls->Add(this->LoadScreen);
             this->Controls->Add(this->comboLab);
@@ -290,125 +350,19 @@ namespace ToSF {
             this->groupBox1->PerformLayout();
             (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->enlargeSc))->EndInit();
             (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->fixedCount))->EndInit();
+            this->screenGroup->ResumeLayout(false);
             this->ResumeLayout(false);
             this->PerformLayout();
 
         }
 #pragma endregion
+#pragma region Controls event
     private:
         System::Void ToSForm_Load(System::Object^  sender, System::EventArgs^  e);
         System::Void Stone_Click(System::Object^  sender, System::EventArgs^  e);
-        System::Void updateBoard();
         System::Void LoadScreen_Click(System::Object^  sender, System::EventArgs^  e);
         System::Void outpath_Click(System::Object^  sender, System::EventArgs^  e);
-        void Threshold(Bitmap^ bm, unsigned char t) {
-            for (int i = 0; i < bm->Height; i++) {
-                for (int j = 0; j < bm->Width; j++) {
-                    Color tmpColor = bm->GetPixel(j, i);
-                    double gray;
-                    gray = tmpColor.R * 0.299 + tmpColor.G * 0.587 + tmpColor.B * 0.114;
-                    if (gray > t) { gray = 255; } else { gray = 0; }
-                    bm->SetPixel(j, i, Color::FromArgb(gray, gray, gray));
-                }
-            }
-        }
-        /* 影像處理 */
-        void filtering(Bitmap^ bm, double filter[][5]) {
-            double ***dstColor = new double**[bm->Height];
-            for (int i = 0; i < bm->Height; i++) {
-                dstColor[i] = new double*[bm->Width];
-                for (int j = 0; j < bm->Width; j++) {
-                    dstColor[i][j] = new double[3]{ 0,0,0 };
-                    for (int n = 0; n < 5; n++) {
-                        for (int m = 0; m < 5; m++) {
-                            int xOffset = j - 2 + m;
-                            int yOffset = i - 2 + n;
-                            // Reflect image about edge.
-                            while (xOffset < 0 || xOffset >= bm->Width || yOffset < 0 || yOffset >= bm->Height) {
-                                xOffset = xOffset < 0 ? -xOffset : xOffset;
-                                xOffset = xOffset >(bm->Width - 1) ? ((bm->Width - 1) * 2 - xOffset) : xOffset;
-                                yOffset = yOffset < 0 ? -yOffset : yOffset;
-                                yOffset = yOffset >(bm->Height - 1) ? ((bm->Height - 1) * 2 - yOffset) : yOffset;
-                            }
-                            Color tmpColor = bm->GetPixel(xOffset, yOffset);
-                            dstColor[i][j][0] += tmpColor.R * filter[n][m];
-                            dstColor[i][j][1] += tmpColor.G * filter[n][m];
-                            dstColor[i][j][2] += tmpColor.B * filter[n][m];
-                        }
-                    }
-                    for (int c = 0; c < 3; c++) {
-                        if (dstColor[i][j][c] < 0) { dstColor[i][j][c] = 0; } // Out of range.
-                        else if (dstColor[i][j][c] > 255) { dstColor[i][j][c] = 255; }
-                    }
-
-                }
-            }
-            for (int i = 0; i < bm->Height; i++) {
-                for (int j = 0; j < bm->Width; j++) {
-                    bm->SetPixel(j, i, Color::FromArgb(dstColor[i][j][0], dstColor[i][j][1], dstColor[i][j][2]));
-                }
-            }
-            delete[] dstColor;
-        }
-        void dealPicEdge(Bitmap^ bm) {
-            // Edge filter
-            double filter[5][5] = {
-                { -1, -4, -6, -4, -1 },
-                { -4, -16, -24, -16, -4 },
-                { -6, -24, 220, -24, -6 },
-                { -4, -16, -24, -16, -4 },
-                { -1, -4, -6, -4, -1 }
-            };
-            for (int i = 0; i < 5; i++) {
-                for (int j = 0; j < 5; j++) {
-                    filter[i][j] /= 256.0;
-                }
-            }
-            this->filtering(bm, filter);
-            this->filtering(bm, filter);
-            this->Threshold(bm, 8);
-            // Gussian filter
-            double gussian[5][5] = {
-                { 1, 4, 6, 4, 1 },
-                { 4, 16, 24, 16, 4 },
-                { 6, 24, 36, 24, 6 },
-                { 4, 16, 24, 16, 4 },
-                { 1, 4, 6, 4, 1 }
-            };
-            for (int i = 0; i < 5; i++) {
-                for (int j = 0; j < 5; j++) {
-                    gussian[i][j] /= 256.0;
-                }
-            }
-            this->filtering(bm, gussian);
-        }
-        double compareImage(Bitmap^ bm1, Bitmap^ bm2) {
-            double diff = 0;
-            for (int y = 0; y < bm1->Height; y++) {
-                for (int x = 0; x < bm1->Width; x++) {
-                    Color c1 = bm1->GetPixel(x, y);
-                    Color c2 = bm2->GetPixel(x, y);
-                    diff += (c1.R - c2.R) * (c1.R - c2.R); // already gray, thus only get red.
-                }
-            }
-            return diff;
-        }
-        void dealPic(Bitmap^ bm) {
-            // Quant_Uniform
-            for (int i = 0; i<bm->Height; i++) {
-                for (int j = 0; j<bm->Width; j++) {
-                    Color thisColor = bm->GetPixel(j, i);
-                    bm->SetPixel(j, i, Color::FromArgb((thisColor.R >> 2) << 2, (thisColor.G >> 2) << 2, (thisColor.B >> 2) << 2));
-                }
-            }
-        }
-
         System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e);
-        int getStonePosX(int x);
-        int getStonePosY(int y);
-
-        bool checkCanRun();
-        System::Void run();
         System::Void autorunBtn_Click(System::Object^  sender, System::EventArgs^  e);
         System::Void fixedCombo_CheckedChanged(System::Object^  sender, System::EventArgs^  e);
         System::Void fixedCount_ValueChanged(System::Object^  sender, System::EventArgs^  e);
@@ -417,6 +371,18 @@ namespace ToSF {
         System::Void attackAll_CheckedChanged(System::Object^  sender, System::EventArgs^  e);
         System::Void enlargeCalcTime_CheckedChanged(System::Object^  sender, System::EventArgs^  e);
         System::Void enlargeSc_ValueChanged(System::Object^  sender, System::EventArgs^  e);
-    };
+        System::Void RunPathBtn_Click(System::Object^  sender, System::EventArgs^  e);
+#pragma endregion
+    private:
+        array<System::Drawing::Image^>^ stonePics;
+        array<System::Drawing::Image^>^ stoneEdgePics;
+
+        System::Void updateBoard();
+        System::Void updateFinalBoard();
+        System::Void markBoard(int x1, int y1, int x2, int y2, int index, int length);
+        System::Boolean checkCanRun();
+        System::Void loadBoardFromBitmap(Bitmap^ bm);
+        System::Void run();
+};
 
 }

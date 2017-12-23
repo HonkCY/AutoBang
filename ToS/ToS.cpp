@@ -5,7 +5,7 @@
 
 int movingVector[DIRECTIONS][2] = { { -1,0 },{ 1,0 },{ 0,-1 },{ 0,1 } };
 
-float wPriority = 2, wAllAttack = 8,wHeuristic = 71, wStep = 3;
+float wPriority = 2, wAllAttack = 4,wHeuristic = 71, wStep = 3;
 
 bool ToS::isFixedCombo;
 int ToS::fixedComboCount;
@@ -14,6 +14,25 @@ int ToS::priorityStoneType;
 bool ToS::isAttackAll;
 bool ToS::isEnlargeCalcTime;
 int ToS::enlargeScale;
+void ToS::setSrcBoard(char newBoard[HEIGHT][WIDTH]) {
+    for (int h = 0; h < HEIGHT; ++h) {
+        for (int w = 0; w < WIDTH; ++w) {
+            this->srcBoard[h][w] = newBoard[h][w];
+        }
+    }
+    initBoard();
+}
+void ToS::setSrcBoard(vector<vector<char>> newBoard) {
+    for (int h = 0; h < HEIGHT; ++h) {
+        for (int w = 0; w < WIDTH; ++w) {
+            this->srcBoard[h][w] = newBoard[h][w];
+        }
+    }
+    initBoard();
+}
+void ToS::initBoard() {
+    this->setBoard(this->srcBoard);
+}
 void ToS::setBoard(char newBoard[HEIGHT][WIDTH]) {
 	for (int h = 0; h < HEIGHT; ++h) {
 		for (int w = 0; w < WIDTH; ++w) {
@@ -291,8 +310,9 @@ std::pair<vector<Point>, float> ToS::findPathFixedSource(vector<vector<char>> &s
 		}
 		if (vQueue.size() > queueLimit)// restrict vQueue size as end condition
 			break;
+        int rnd = rand();
 		for (int i = 0; i < DIRECTIONS; ++i) {
-			int newh = thisNode.p.first + movingVector[i][0], neww = thisNode.p.second + movingVector[i][1];
+			int newh = thisNode.p.first + movingVector[(i + rnd) % DIRECTIONS][0], neww = thisNode.p.second + movingVector[(i + rnd) % DIRECTIONS][1];
 			NODE newNode;
 			newNode.p = Point(newh, neww);
 			if (!this->isValid(newh, neww) || newNode.p == fatherNode.p) // not go back immediately
