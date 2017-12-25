@@ -330,6 +330,7 @@ System::Void ToSF::ToSForm::calcPath_Click(System::Object^  sender, System::Even
     for (int i = 0; i < path.size(); ++i) {
         this->pathList->Items->Add(path[i].first.ToString() + "," + path[i].second.ToString());
     }
+    this->pathLabel->Text = "Path: " + path.size().ToString();
 }
 
 System::Void ToSF::ToSForm::Stone_Click(System::Object^  sender, System::EventArgs^  e) {
@@ -338,9 +339,10 @@ System::Void ToSF::ToSForm::Stone_Click(System::Object^  sender, System::EventAr
     int y = idx / 6, x = idx % 6;
     if (this->addPathBtn->BackColor == SystemColors::ActiveCaption) { // Add mode.
         this->pathList->Items->Add(y.ToString() + "," + x.ToString());
+        this->pathList->SelectedIndex = this->pathList->Items->Count - 1; // set bottom.
         return;
     }
-    tos.setStone(y, x, (tos.getStone(y, x)) % 6 + 1);
+    tos.setSrcStone(y, x, (tos.getStone(y, x)) % 6 + 1);
     this->updateBoard();
 }
 
@@ -360,28 +362,7 @@ System::Void ToSF::ToSForm::LoadScreen_Click(System::Object^  sender, System::Ev
     Application::DoEvents();
     this->loadBoardFromBitmap(bm);
 }
-/*
-void testing() {
-    //checkCanRun();
-    Image^ img = Image::FromFile("Screenshot.bmp");
-    Bitmap^ oribm = (Bitmap^) (img);
-    Bitmap^ bm = gcnew Bitmap(StoneWidth * 1, StoneHeight * 1);
-    Graphics^ g = Graphics::FromImage(bm);
-    g->PixelOffsetMode = Drawing::Drawing2D::PixelOffsetMode::HighQuality;
-    for (int y = 0; y < 5; y++) {
-        for (int x = 0; x < 6; x++) {
-            System::Drawing::Rectangle srcRect = System::Drawing::Rectangle(base.x + GetStonePosX(x), base.y + GetStonePosY(y), StoneWidth * 1, StoneHeight * 1);
-            g->DrawImage(oribm, 0, 0, srcRect, GraphicsUnit::Pixel);
-            DealPicEdge(bm);
-            String^ str;
-            str = "imgs/" + x.ToString() + "-" + y.ToString() + "stone.bmp";
-            bm->Save(str);
-        }
-    }
-    delete img; // Release.
-    this->scbox->Image = bm;
-    this->scbox->SizeMode = PictureBoxSizeMode::Zoom;
-}*/
+
 System::Void ToSF::ToSForm::timer1_Tick(System::Object^  sender, System::EventArgs^  e) {
     if (checkCanRun()) {
         Sleep(300);
@@ -467,20 +448,34 @@ System::Void ToSF::ToSForm::RunPathBtn_Click(System::Object ^ sender, System::Ev
     RunPath(path);
 }
 System::Void ToSF::ToSForm::pathList_SelectedIndexChanged(System::Object ^ sender, System::EventArgs ^ e) {
-    int i = this->pathList->SelectedIndex;
-    if (i == -1) { return; }
-
-    int y = Convert::ToInt32(this->pathList->Items[i]->ToString()->Split(',')[0]);
-    int x = Convert::ToInt32(this->pathList->Items[i]->ToString()->Split(',')[1]);
+    pathLabel->Text = "Path: " + this->pathList->Items->Count.ToString();
+    // Reset all border.
     for (int h = 0; h < 5; h++) {
         for (int w = 0; w < 6; w++) {
             this->board[h * 6 + w]->BorderStyle = BorderStyle::None;
         }
     }
+    updateBoard(); // Reset board.
+    int i = this->pathList->SelectedIndex;
+    if (i == -1) { return; }
+    // Simulate board.
+    for (int step = 0; step < i; step++) {
+        int x1 = Convert::ToInt32(this->pathList->Items[step]->ToString()->Split(',')[1]);
+        int y1 = Convert::ToInt32(this->pathList->Items[step]->ToString()->Split(',')[0]);
+        int x2 = Convert::ToInt32(this->pathList->Items[step + 1]->ToString()->Split(',')[1]);
+        int y2 = Convert::ToInt32(this->pathList->Items[step + 1]->ToString()->Split(',')[0]);
+        Image^ tmp = this->board[y1 * 6 + x1]->Image;
+        this->board[y1 * 6 + x1]->Image = this->board[y2 * 6 + x2]->Image;
+        this->board[y2 * 6 + x2]->Image = tmp;
+    }
+    // border.
+    int x = Convert::ToInt32(this->pathList->Items[i]->ToString()->Split(',')[1]);
+    int y = Convert::ToInt32(this->pathList->Items[i]->ToString()->Split(',')[0]);
     this->board[y * 6 + x]->BorderStyle = BorderStyle::Fixed3D;
 }
 System::Void ToSF::ToSForm::addPathBtn_Click(System::Object ^ sender, System::EventArgs ^ e) {
     this->addPathBtn->BackColor = this->addPathBtn->BackColor == SystemColors::ActiveCaption ? SystemColors::Control : SystemColors::ActiveCaption;
+    this->pathList->SelectedIndex = this->pathList->Items->Count - 1; // set bottom.
 }
 System::Void ToSF::ToSForm::removePathBtn_Click(System::Object ^ sender, System::EventArgs ^ e) {
     int i = this->pathList->SelectedIndex;
@@ -488,11 +483,14 @@ System::Void ToSF::ToSForm::removePathBtn_Click(System::Object ^ sender, System:
         this->pathList->Items->RemoveAt(i);
         if (i < this->pathList->Items->Count) {
             this->pathList->SelectedIndex = i;
+        } else {
+            this->pathList->SelectedIndex = this->pathList->Items->Count - 1;
         }
     }
 }
 System::Void ToSF::ToSForm::clearPathBtn_Click(System::Object ^ sender, System::EventArgs ^ e) {
     this->pathList->Items->Clear();
+    this->pathLabel->Text = "Path: 0";
 }
 System::Void ToSF::ToSForm::updateBoard() {
     tos.initBoard(); // 僅顯示初始盤面
@@ -741,10 +739,14 @@ System::Void ToSF::ToSForm::run() {
 
     this->comboLab->Text = "Combo:" + combos.size().ToString() + ", Path:" + path.size();
     for (int i = 0; i < path.size() - 1; i++) {
-        markBoard(path[i].second, path[i].first, path[i+1].second, path[i+1].first, i, path.size());
+        markBoard(path[i].second, path[i].first, path[i + 1].second, path[i + 1].first, i, path.size());
     }
     Application::DoEvents();
     RunPath(path);
+}
+
+System::Void ToSF::ToSForm::dir8chk_CheckedChanged(System::Object ^ sender, System::EventArgs ^ e) {
+    tos.setDirectionCount(this->dir8chk->Checked ? 8 : 4);
 }
 
 

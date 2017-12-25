@@ -3,7 +3,7 @@
 #include <algorithm>
 #define WIDTH 6
 #define HEIGHT 5
-#define DIRECTIONS 4
+#define DIRECTIONS 8
 
 using std::vector;
 using Point = std::pair<int, int>;
@@ -38,6 +38,7 @@ private:
 	char board[HEIGHT][WIDTH];
 	bool visited[HEIGHT][WIDTH];
 	vector<Point> connects;
+    int directionCount = 4;
 public:
 	void setBoard(char newBoard[HEIGHT][WIDTH]);
 	char getStone(int h, int w);
@@ -62,7 +63,10 @@ public:
     // 設定初始盤面
     void setSrcBoard(char newBoard[HEIGHT][WIDTH]);
     void setSrcBoard(vector<vector<char>> newBoard);
+    void setSrcStone(int h, int w, char c);
     void initBoard();
+
+    void setDirectionCount(int c);
 
 	vector<Point> findPath();
 	std::pair<vector<Point>, float> findPathFixedSource(vector<vector<char>> &simulateBoard, Point source);

@@ -63,6 +63,8 @@ namespace ToSF {
     private: System::Windows::Forms::Button^  addPathBtn;
     private: System::Windows::Forms::Button^  removePathBtn;
     private: System::Windows::Forms::Button^  clearPathBtn;
+    private: System::Windows::Forms::CheckBox^  dir8chk;
+    private: System::Windows::Forms::Label^  pathLabel;
     protected:
         array<System::Windows::Forms::PictureBox^>^ finalBoard;
         /// <summary>
@@ -97,6 +99,7 @@ namespace ToSF {
             this->curposShow = (gcnew System::Windows::Forms::Label());
             this->autorunBtn = (gcnew System::Windows::Forms::Button());
             this->groupBox1 = (gcnew System::Windows::Forms::GroupBox());
+            this->dir8chk = (gcnew System::Windows::Forms::CheckBox());
             this->scanComboBox = (gcnew System::Windows::Forms::ComboBox());
             this->idiotCheck = (gcnew System::Windows::Forms::CheckBox());
             this->enlargeSc = (gcnew System::Windows::Forms::NumericUpDown());
@@ -111,9 +114,10 @@ namespace ToSF {
             this->RunPathBtn = (gcnew System::Windows::Forms::Button());
             this->pathList = (gcnew System::Windows::Forms::ListBox());
             this->pathGroup = (gcnew System::Windows::Forms::GroupBox());
+            this->clearPathBtn = (gcnew System::Windows::Forms::Button());
             this->removePathBtn = (gcnew System::Windows::Forms::Button());
             this->addPathBtn = (gcnew System::Windows::Forms::Button());
-            this->clearPathBtn = (gcnew System::Windows::Forms::Button());
+            this->pathLabel = (gcnew System::Windows::Forms::Label());
             (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->scbox))->BeginInit();
             this->groupBox1->SuspendLayout();
             (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->enlargeSc))->BeginInit();
@@ -182,6 +186,7 @@ namespace ToSF {
             // 
             // groupBox1
             // 
+            this->groupBox1->Controls->Add(this->dir8chk);
             this->groupBox1->Controls->Add(this->scanComboBox);
             this->groupBox1->Controls->Add(this->idiotCheck);
             this->groupBox1->Controls->Add(this->enlargeSc);
@@ -197,6 +202,17 @@ namespace ToSF {
             this->groupBox1->TabIndex = 6;
             this->groupBox1->TabStop = false;
             this->groupBox1->Text = L"³]©w";
+            // 
+            // dir8chk
+            // 
+            this->dir8chk->AutoSize = true;
+            this->dir8chk->Location = System::Drawing::Point(350, 21);
+            this->dir8chk->Name = L"dir8chk";
+            this->dir8chk->Size = System::Drawing::Size(48, 16);
+            this->dir8chk->TabIndex = 10;
+            this->dir8chk->Text = L"±×Âà";
+            this->dir8chk->UseVisualStyleBackColor = true;
+            this->dir8chk->CheckedChanged += gcnew System::EventHandler(this, &ToSForm::dir8chk_CheckedChanged);
             // 
             // scanComboBox
             // 
@@ -341,6 +357,7 @@ namespace ToSF {
             // 
             // pathGroup
             // 
+            this->pathGroup->Controls->Add(this->pathLabel);
             this->pathGroup->Controls->Add(this->clearPathBtn);
             this->pathGroup->Controls->Add(this->removePathBtn);
             this->pathGroup->Controls->Add(this->addPathBtn);
@@ -353,6 +370,16 @@ namespace ToSF {
             this->pathGroup->TabIndex = 15;
             this->pathGroup->TabStop = false;
             this->pathGroup->Text = L"Path";
+            // 
+            // clearPathBtn
+            // 
+            this->clearPathBtn->Location = System::Drawing::Point(96, 79);
+            this->clearPathBtn->Name = L"clearPathBtn";
+            this->clearPathBtn->Size = System::Drawing::Size(102, 23);
+            this->clearPathBtn->TabIndex = 17;
+            this->clearPathBtn->Text = L"Clear";
+            this->clearPathBtn->UseVisualStyleBackColor = true;
+            this->clearPathBtn->Click += gcnew System::EventHandler(this, &ToSForm::clearPathBtn_Click);
             // 
             // removePathBtn
             // 
@@ -374,15 +401,14 @@ namespace ToSF {
             this->addPathBtn->UseVisualStyleBackColor = true;
             this->addPathBtn->Click += gcnew System::EventHandler(this, &ToSForm::addPathBtn_Click);
             // 
-            // clearPathBtn
+            // pathLabel
             // 
-            this->clearPathBtn->Location = System::Drawing::Point(96, 79);
-            this->clearPathBtn->Name = L"clearPathBtn";
-            this->clearPathBtn->Size = System::Drawing::Size(102, 23);
-            this->clearPathBtn->TabIndex = 17;
-            this->clearPathBtn->Text = L"Clear";
-            this->clearPathBtn->UseVisualStyleBackColor = true;
-            this->clearPathBtn->Click += gcnew System::EventHandler(this, &ToSForm::clearPathBtn_Click);
+            this->pathLabel->AutoSize = true;
+            this->pathLabel->Location = System::Drawing::Point(96, 105);
+            this->pathLabel->Name = L"pathLabel";
+            this->pathLabel->Size = System::Drawing::Size(37, 12);
+            this->pathLabel->TabIndex = 18;
+            this->pathLabel->Text = L"Path: 0";
             // 
             // ToSForm
             // 
@@ -407,6 +433,7 @@ namespace ToSF {
             (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->fixedCount))->EndInit();
             this->screenGroup->ResumeLayout(false);
             this->pathGroup->ResumeLayout(false);
+            this->pathGroup->PerformLayout();
             this->ResumeLayout(false);
             this->PerformLayout();
 
@@ -432,6 +459,7 @@ namespace ToSF {
         System::Void addPathBtn_Click(System::Object^  sender, System::EventArgs^  e);
         System::Void removePathBtn_Click(System::Object^  sender, System::EventArgs^  e);
         System::Void clearPathBtn_Click(System::Object^  sender, System::EventArgs^  e);
+        System::Void dir8chk_CheckedChanged(System::Object^  sender, System::EventArgs^  e);
 #pragma endregion
     private:
         array<System::Drawing::Image^>^ stonePics;

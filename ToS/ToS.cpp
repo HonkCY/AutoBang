@@ -3,7 +3,10 @@
 #include <cstring>
 #include <omp.h>
 
-int movingVector[DIRECTIONS][2] = { { -1,0 },{ 1,0 },{ 0,-1 },{ 0,1 } };
+int movingVector[DIRECTIONS][2] = { 
+    { -1,0 },{ 1,0 },{ 0,-1 },{ 0,1 },
+    { -1,-1 },{ -1,1 },{ 1,-1 },{ 1,1 }
+};
 
 float wPriority = 2, wAllAttack = 4,wHeuristic = 71, wStep = 3;
 
@@ -30,8 +33,14 @@ void ToS::setSrcBoard(vector<vector<char>> newBoard) {
     }
     initBoard();
 }
+void ToS::setSrcStone(int h, int w, char c) {
+    this->srcBoard[h][w] = c;
+}
 void ToS::initBoard() {
     this->setBoard(this->srcBoard);
+}
+void ToS::setDirectionCount(int c) {
+    this->directionCount = c;
 }
 void ToS::setBoard(char newBoard[HEIGHT][WIDTH]) {
 	for (int h = 0; h < HEIGHT; ++h) {
@@ -101,7 +110,7 @@ int ToS::isCombo(int h, int w) {
 void ToS::getConnects(int h, int w) {
 	this->visited[h][w] = true;
 	this->connects.push_back(Point(h, w));
-	for (int i = 0; i < DIRECTIONS; ++i) {
+	for (int i = 0; i < this->directionCount; ++i) {
 		int newh = h + movingVector[i][0], neww = w + movingVector[i][1];
 		if (!this->isValid(newh, neww) || this->board[newh][neww] != this->board[h][w] || this->visited[newh][neww])
 			continue;
@@ -311,8 +320,8 @@ std::pair<vector<Point>, float> ToS::findPathFixedSource(vector<vector<char>> &s
 		if (vQueue.size() > queueLimit)// restrict vQueue size as end condition
 			break;
         int rnd = rand();
-		for (int i = 0; i < DIRECTIONS; ++i) {
-			int newh = thisNode.p.first + movingVector[(i + rnd) % DIRECTIONS][0], neww = thisNode.p.second + movingVector[(i + rnd) % DIRECTIONS][1];
+		for (int i = 0; i < this->directionCount; ++i) {
+			int newh = thisNode.p.first + movingVector[(i + rnd) % this->directionCount][0], neww = thisNode.p.second + movingVector[(i + rnd) % this->directionCount][1];
 			NODE newNode;
 			newNode.p = Point(newh, neww);
 			if (!this->isValid(newh, neww) || newNode.p == fatherNode.p) // not go back immediately
