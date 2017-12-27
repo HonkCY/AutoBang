@@ -5,6 +5,7 @@
 
 int movingVector[DIRECTIONS][2] = { { -1,0 },{ 1,0 },{ 0,-1 },{ 0,1 } };
 
+// 評估用的權重
 float wPriority = 2, wAllAttack = 4,wHeuristic = 71, wStep = 3;
 
 bool ToS::isFixedCombo;
@@ -14,6 +15,7 @@ int ToS::priorityStoneType;
 bool ToS::isAttackAll;
 bool ToS::isEnlargeCalcTime;
 int ToS::enlargeScale;
+
 void ToS::setSrcBoard(char newBoard[HEIGHT][WIDTH]) {
     for (int h = 0; h < HEIGHT; ++h) {
         for (int w = 0; w < WIDTH; ++w) {
@@ -22,6 +24,7 @@ void ToS::setSrcBoard(char newBoard[HEIGHT][WIDTH]) {
     }
     initBoard();
 }
+
 void ToS::setSrcBoard(vector<vector<char>> newBoard) {
     for (int h = 0; h < HEIGHT; ++h) {
         for (int w = 0; w < WIDTH; ++w) {
@@ -30,9 +33,11 @@ void ToS::setSrcBoard(vector<vector<char>> newBoard) {
     }
     initBoard();
 }
+
 void ToS::initBoard() {
     this->setBoard(this->srcBoard);
 }
+
 void ToS::setBoard(char newBoard[HEIGHT][WIDTH]) {
 	for (int h = 0; h < HEIGHT; ++h) {
 		for (int w = 0; w < WIDTH; ++w) {
@@ -60,17 +65,20 @@ bool ToS::isValid(int h, int w) {
 
 vector<COMBO> ToS::getCombos() {
 	char boardBackup[HEIGHT][WIDTH];
+	//備份原始盤面
 	memcpy(boardBackup, this->board, sizeof(this->board));
+	// partial用來記錄當前盤面Combo
 	vector<COMBO> result, partial;
 	int ith = 1;
 	do {
-		partial = this->getPresentCombos();
-		for (int i = 0; i < partial.size(); ++i)
+		partial = this->getPresentCombos(); // 取得目前盤面Combo
+		for (int i = 0; i < partial.size(); ++i) // 紀錄這些Combo是第幾消
 			partial[i].ith = ith;
 		result.insert(result.end(), partial.begin(), partial.end());
-		this->dropDown();
-		++ith;
-	} while (partial.size());
+		this->dropDown(); // 模擬落珠
+		++ith; // 下一消
+	} while (partial.size()); // 如果盤面已經完全沒Combo就停止
+	// 回復原始盤面
 	memcpy(this->board, boardBackup, sizeof(this->board));
 	return result;
 }
@@ -79,6 +87,9 @@ vector<COMBO> ToS::getPresentCombos() {
 	vector<COMBO> result;
 	for (int h = 0; h < HEIGHT; ++h) {
 		for (int w = 0; w < WIDTH; ++w) {
+			// 逐個座標看是否可以連通成Combo
+			// 因為會把連通的Combo改成NONE
+			// 所以不會有重複計算的問題
 			if (this->board[h][w] == NONE)
 				continue;
 			COMBO combo;
@@ -94,10 +105,11 @@ vector<COMBO> ToS::getPresentCombos() {
 int ToS::isCombo(int h, int w) {
 	memset(this->visited, false, sizeof(this->visited));
 	this->connects.clear();
-	this->getConnects(h, w);
+	this->getConnects(h, w); // connect資訊會被存在 this->connects
 	return this->markQuals();
 }
 
+// 用dfs來標記連通又同種類的符石
 void ToS::getConnects(int h, int w) {
 	this->visited[h][w] = true;
 	this->connects.push_back(Point(h, w));
@@ -109,6 +121,11 @@ void ToS::getConnects(int h, int w) {
 	}
 }
 
+// 判斷座標P(h,w)直或橫可以連通幾個
+// 這個函數稍微改一下規則 就可以適應下面這種三消規則之類的
+//口口
+//口
+//有些技能是像上面那樣連通也能消，就要從這改(如果要改那d就不能只代表直或橫)
 int ToS::isQualified(int d, Point p) {
 	this->visited[p.first][p.second] = true;
 	int result = 1;
@@ -121,14 +138,18 @@ int ToS::isQualified(int d, Point p) {
 	return result;
 }
 
+// 把Combo中連通的標記成NONE並傳回連通數量
 int ToS::markQuals() {
 	int result = 0;
 	for (int i = 0; i < this->connects.size(); ++i) {
 		memset(this->visited, false, sizeof(this->visited));
+		// 連通>=3就算在Combo裡面，這裡3可以變數化，像改成2就能改成二消隊
 		if (this->isQualified(0, this->connects[i]) >= 3 || this->isQualified(1, this->connects[i]) >= 3) {
 			++result;
 		}
 		else {
+			// 雖然連通且同屬性但不屬於這個Combo
+			// 就刪掉
 			this->connects.erase(this->connects.begin() + i);
 			i--;
 		}
@@ -142,28 +163,34 @@ int ToS::markQuals() {
 }
 
 float ToS::heuristic(float value, float maxi) {
+	// 簡單的預估達到最大分數的步數
 	return (maxi - value) * wHeuristic;
 }
 
 float ToS::maxiExpected() {
+	// 簡單的預估最大分數
 	int count[6] = { 0 };
 	float result = 0.0;
+	// 計算所有屬性存在盤面上的符石數
 	for (int h = 0; h < HEIGHT; ++h) {
 		for (int w = 0; w < WIDTH; ++w) {
 			count[this->board[h][w] - 1]++;
 		}
 	}
+
+	// 簡單評估最大分數
 	for (int i = 0; i < 6; ++i) {
 		if (ToS::isPriorityStone && ToS::priorityStoneType == i) {
-			if(ToS::isAttackAll)
+			//如果是優先屬性
+			if(ToS::isAttackAll) // 全體優先就假設每五顆一combo
 				result += wAllAttack * count[i] / 5;
 			else
 				result += wPriority*(count[i] / 3);
 		}
-		else
+		else // 簡單的假設每3顆都能形成 1 combo
 			result += count[i] / 3;
 	}
-	if (isFixedCombo)
+	if (isFixedCombo) // 指定首消的狀況，達成那個首消數就是最佳
 		return fixedComboCount;
 	return result;
 }
@@ -186,10 +213,10 @@ float ToS::evalue(vector<vector<char>> newBoard) {
 		else
 			result += 1;
 	}
-	if (isFixedCombo && fixedComboCount == firstComboCount)
+	if (isFixedCombo && fixedComboCount == firstComboCount) // 達成指定首消，設定分數無限大
 		return 0x7fffffff;
-	else if (isFixedCombo)
-		return combos.size()>fixedComboCount?0: combos.size();
+	else if (isFixedCombo) // 若有指定首消那評分就只是Combo數 超過就0分
+		return firstComboCount > fixedComboCount?0: firstComboCount;
 	return result;
 }
 
@@ -219,6 +246,7 @@ vector<Point> ToS::findPath() {
 	const int SourceCount = 4;
 	vector<Point> sources;
 	vector<Point> path(SourceCount);
+	// 指定四個角落當起點
 	sources.push_back(Point(0, 0));
 	sources.push_back(Point(4, 0));
 	sources.push_back(Point(4, 5));
@@ -227,7 +255,7 @@ vector<Point> ToS::findPath() {
 	float valMin = 0x7fffffff;
 	vector<vector<vector<char>>> simulateBoard(SourceCount);
 	vector<std::pair<vector<Point>, float>> results(SourceCount);
-
+	// 平行巡路
 #pragma omp parallel for
 	for (int i = 0; i < SourceCount; ++i) {
 		simulateBoard[i].resize(HEIGHT);
@@ -238,6 +266,7 @@ vector<Point> ToS::findPath() {
 		results[i] = this->findPathFixedSource(simulateBoard[i], sources[i]);
 	}
 
+	// 找出最好的路
 	for (int i = 0; i < SourceCount; ++i) {
 		if (results[i].second <= valMin) {
 			valMin = results[i].second;
@@ -255,7 +284,7 @@ vector<Point> ToS::findPath() {
 std::pair<vector<Point>, float> ToS::findPathFixedSource(vector<vector<char>> &simulateBoard, Point source) {
 	std::pair<vector<Point>, float> result;
 	vector<NODE> vQueue;
-	int queueLimit = isEnlargeCalcTime ? 5000*enlargeScale : 5000;
+	int queueLimit = isEnlargeCalcTime ? 5000*enlargeScale : 5000; // queue size 的最大值
 	int top = 0, finalIdx = 0, expGoal = this->maxiExpected(); // expGoal should not be that easy
 	float finalVal = 0x7fffffff;
 	vector<vector<char>> finalBoard = simulateBoard;
@@ -266,16 +295,16 @@ std::pair<vector<Point>, float> ToS::findPathFixedSource(vector<vector<char>> &s
 	tmp.poped = false;
 	tmp.evalue = 0;
 	tmp.depth = 0;
-	vQueue.push_back(tmp);
+	vQueue.push_back(tmp); // 把起點push進去模擬的priority queue
 	while (top <= vQueue.size()) {
 		NODE thisNode, fatherNode;
-		// get this node
+		// pop出值最小的Node (對我沒打錯是值最小的，不懂可以看A*評分定義)(值最小不是指vQueue[i].evalue最小)是指fval
 		float valMin = 0x7fffffff;
 		for (int i = 0; i < vQueue.size(); ++i) {
 			if (vQueue[i].poped)
 				continue;
 			float fval;
-			// f = h + g*wg
+			// f = h + g*wg 
 			fval = heuristic(vQueue[i].evalue,expGoal) + vQueue[i].depth * wStep;
 			//
 			if (fval <= valMin) {
@@ -291,7 +320,7 @@ std::pair<vector<Point>, float> ToS::findPathFixedSource(vector<vector<char>> &s
 
 		// swap board
 		simulateBoard = thisNode.board;
-		// check
+		// 檢查是不是比當前最好的盤面還好，如果還要好，那就換
 		if (valMin <= finalVal) {
 			finalVal = valMin;
 			finalIdx = top;
@@ -300,6 +329,8 @@ std::pair<vector<Point>, float> ToS::findPathFixedSource(vector<vector<char>> &s
 			if (finalVal >= 0x7fffffff)
 				break;
 		}
+		// 這段很像是忘記刪掉的，因為在評分都有對限制Combo做過處理了
+		// 上面achived goal就會break掉
 		if (isFixedCombo) {
 			vector<COMBO> combos;
 			ToS tmpToS;
@@ -308,18 +339,20 @@ std::pair<vector<Point>, float> ToS::findPathFixedSource(vector<vector<char>> &s
 			if (this->getITHComboCount(1, combos) == fixedComboCount)
 				break;
 		}
+		//
 		if (vQueue.size() > queueLimit)// restrict vQueue size as end condition
 			break;
         int rnd = rand();
 		for (int i = 0; i < DIRECTIONS; ++i) {
+			// 開始走
 			int newh = thisNode.p.first + movingVector[(i + rnd) % DIRECTIONS][0], neww = thisNode.p.second + movingVector[(i + rnd) % DIRECTIONS][1];
-			NODE newNode;
+			NODE newNode; //下一個座標
 			newNode.p = Point(newh, neww);
-			if (!this->isValid(newh, neww) || newNode.p == fatherNode.p) // not go back immediately
+			if (!this->isValid(newh, neww) || newNode.p == fatherNode.p) // not go back immediately 不馬上往回走，所以不能是fatherNode
 				continue;
 			// swap 
 			std::swap(simulateBoard[newh][neww], simulateBoard[thisNode.p.first][thisNode.p.second]);
-			//
+			// 紀錄Node資訊並push到queue
 			newNode.idx = top;
 			newNode.board = simulateBoard;
 			newNode.evalue = this->evalue(simulateBoard);
@@ -334,7 +367,7 @@ std::pair<vector<Point>, float> ToS::findPathFixedSource(vector<vector<char>> &s
 		//
 		//++top;
 	}
-	// path backtrace
+	// path backtrace 用backtrace方法取得路徑
 	int idx = finalIdx;
 	while (idx != 0) {
 		result.first.push_back(vQueue[idx].p);
