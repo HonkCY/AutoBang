@@ -398,7 +398,9 @@ System::Void ToSF::ToSForm::autorunBtn_Click(System::Object^  sender, System::Ev
         //timer1->Start();
         this->autorunBtn->Text = "Stop";
         timer1_Tick(nullptr, nullptr);
-        timer1->Start();
+        if (this->AutoRunChk->Checked) {
+            timer1->Start();
+        }
     }
 }
 

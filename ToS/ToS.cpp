@@ -350,9 +350,9 @@ std::pair<vector<Point>, float> ToS::findPathFixedSource(vector<vector<char>> &s
 		if (vQueue.size() > queueLimit)// restrict vQueue size as end condition
 			break;
         int rnd = rand();
-		for (int i = 0; i < DIRECTIONS; ++i) {
+		for (int i = 0; i < this->directionCount; ++i) {
 			// 開始走
-			int newh = thisNode.p.first + movingVector[(i + rnd) % DIRECTIONS][0], neww = thisNode.p.second + movingVector[(i + rnd) % DIRECTIONS][1];
+			int newh = thisNode.p.first + movingVector[(i + rnd) % this->directionCount][0], neww = thisNode.p.second + movingVector[(i + rnd) % this->directionCount][1];
 			NODE newNode; //下一個座標
 			newNode.p = Point(newh, neww);
 			if (!this->isValid(newh, neww) || newNode.p == fatherNode.p) // not go back immediately 不馬上往回走，所以不能是fatherNode
