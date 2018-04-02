@@ -11,6 +11,7 @@ using std::vector;
 using Point = std::pair<int, int>;
 
 // 列舉符石種類NONE代表無符石，可在這增加風化珠電擊珠等
+const int TYPES = 7;
 enum { NONE, FIRE, WATER, WOOD, LIGHT, DARK, HEART };
 
 // 用來記錄個別Combo

@@ -5,7 +5,9 @@
 #include <Windows.h>
 #include <atlimage.h>
 #include <string>
+#include <opencv2/opencv.hpp>
 #pragma comment(lib, "user32.lib")
+using namespace cv;
 
 HWND hwnd, mouseHwnd;
 RECT windowRect, mouseWindowRect;
@@ -349,6 +351,9 @@ System::Void ToSF::ToSForm::Stone_Click(System::Object^  sender, System::EventAr
 System::Void ToSF::ToSForm::LoadScreen_Click(System::Object^  sender, System::EventArgs^  e) {
     if (!GetBSHwnd()) { return; }
     GetWindowPic(hwnd);
+	
+	Mat cvImg = imread("Screenshot.bmp");
+	
     Image^ img = Image::FromFile("Screenshot.bmp");
     Bitmap^ oribm = (Bitmap^) (img);
     Bitmap^ bm = gcnew Bitmap(StoneWidth * 6, StoneHeight * 5);
@@ -360,7 +365,8 @@ System::Void ToSF::ToSForm::LoadScreen_Click(System::Object^  sender, System::Ev
     this->scbox->Image = bm;
     this->scbox->SizeMode = PictureBoxSizeMode::Zoom;
     Application::DoEvents();
-    this->loadBoardFromBitmap(bm);
+    //this->loadBoardFromBitmap(bm);
+	loadBoardByCV();
 }
 
 System::Void ToSF::ToSForm::timer1_Tick(System::Object^  sender, System::EventArgs^  e) {
@@ -620,6 +626,77 @@ System::Boolean ToSF::ToSForm::checkCanRun() {
 
     return true;
 }
+
+// by stackoverflow
+double getSimilarity(const Mat A, const Mat B) {
+	if (A.rows > 0 && A.rows == B.rows && A.cols > 0 && A.cols == B.cols) {
+		// Calculate the L2 relative error between images.
+		double errorL2 = norm(A, B, CV_L2);
+		// Convert to a reasonable scale, since L2 error is summed across all pixels of the image.
+		double similarity = errorL2 / (double)(A.rows * A.cols);
+		return similarity;
+	}
+	else {
+		//Images have a different size
+		return 100000000.0;  // Return a bad value
+	}
+}
+
+
+System::Void ToSF::ToSForm::loadBoardByCV() {
+	// load screenshot
+	Mat bImg = imread("Screenshot.bmp");
+	cvtColor(bImg, bImg, CV_BGR2GRAY);
+	Canny(bImg, bImg, 50, 150);
+	cvtColor(bImg, bImg, CV_GRAY2BGR);
+	// cImg should load out side
+	Mat cImg[7];
+	cImg[HEART] = imread("pic/cv_compare/HEART.png");
+	cImg[WOOD] = imread("pic/cv_compare/WOOD.png");
+	cImg[FIRE] = imread("pic/cv_compare/FIRE.png");
+	cImg[LIGHT] = imread("pic/cv_compare/LIGHT.png");
+	cImg[WATER] = imread("pic/cv_compare/WATER.png");
+	cImg[DARK] = imread("pic/cv_compare/DARK.png");
+	
+	Mat img[30];
+	int i = 0;
+	for (int y = 0; y < 5; ++y) {
+		for (int x = 0; x < 6; ++x) {
+			img[i] = bImg.clone()(cvRect(base.x + x*StoneWidth, base.y + y*StoneHeight, StoneWidth, StoneHeight));
+			
+			
+			i++;
+		}
+	}
+	imshow("1", img[0]);
+
+	imshow("7", img[6]);
+
+	imshow("13", img[12]);
+	vector<vector<char>> newBoard(5);
+	for (int r = 0; r < 5; ++r) {
+		newBoard[r].resize(6);
+		for (int c = 0; c < 6; ++c) {
+			int tIdx = 0;
+			float sim,mini=0x7fffffff;
+			for (int t = 1; t < TYPES; ++t) {
+				
+				//sim = cvMatchShapes(new IplImage(img[r * 6 + c]), new IplImage(cImg[t]), CV_CONTOURS_MATCH_I1);
+				sim = getSimilarity(img[r * 6 + c], cImg[t]);
+				if (sim < mini) {
+					tIdx = t;
+					mini = sim;
+				}
+			}
+			newBoard[r][c] = tIdx;
+		}
+	}
+	tos.setSrcBoard(newBoard);
+	this->updateBoard();
+	Application::DoEvents();
+}
+
+
 System::Void ToSF::ToSForm::loadBoardFromBitmap(System::Drawing::Bitmap^ bm) {
     vector<vector<char>> newBoard(5);
     // ±½´y¼Ò¦¡

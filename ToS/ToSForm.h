@@ -470,6 +470,7 @@ namespace ToSF {
         System::Void markBoard(int x1, int y1, int x2, int y2, int index, int length);
         System::Boolean checkCanRun();
         System::Void loadBoardFromBitmap(Bitmap^ bm);
+		System::Void loadBoardByCV();
         System::Void run();
 };
 
